@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Folder Include="Exceptions\" />
+  </ItemGroup>
+    
+  <ItemGroup>
+      <ProjectReference Include="..\IdentityService.Shared\IdentityService.Shared.csproj" />
+  </ItemGroup>
+    
+  <ItemGroup>
+    <ProjectReference Include="..\..\ZivraFramework\ZivraFramework.EFCore\ZivraFramework.EFCore.csproj" />
+    <ProjectReference Include="..\..\ZivraFramework\ZivraFramework.Core\ZivraFramework.Core.csproj" />
+  </ItemGroup>
+    
+  <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+  </ItemGroup>
+
+</Project>

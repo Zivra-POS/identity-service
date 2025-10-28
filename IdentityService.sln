@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityService.API", "IdentityService.API\IdentityService.API.csproj", "{F11AA338-6C15-4AA7-BB63-31716738BA52}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityService.Core", "IdentityService.Core\IdentityService.Core.csproj", "{F57240D1-0E21-4F97-B0CB-C7C2D287E57A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityService.Infrastructure", "IdentityService.Infrastructure\IdentityService.Infrastructure.csproj", "{388FC28D-500E-4E1E-AB61-B403E5BE0195}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IdentityService.Shared", "IdentityService.Shared\IdentityService.Shared.csproj", "{4BB76089-1058-4FED-BEA6-F1120E19441E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZivraFramework.Core", "..\ZivraFramework\ZivraFramework.Core\ZivraFramework.Core.csproj", "{01CAB882-9D61-40AB-9383-D4293FD9A2C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZivraFramework.EFCore", "..\ZivraFramework\ZivraFramework.EFCore\ZivraFramework.EFCore.csproj", "{DC6EDB1E-A9BF-4676-B76C-4DFF31975BC5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F11AA338-6C15-4AA7-BB63-31716738BA52}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F11AA338-6C15-4AA7-BB63-31716738BA52}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F11AA338-6C15-4AA7-BB63-31716738BA52}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F11AA338-6C15-4AA7-BB63-31716738BA52}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F57240D1-0E21-4F97-B0CB-C7C2D287E57A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F57240D1-0E21-4F97-B0CB-C7C2D287E57A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F57240D1-0E21-4F97-B0CB-C7C2D287E57A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F57240D1-0E21-4F97-B0CB-C7C2D287E57A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{388FC28D-500E-4E1E-AB61-B403E5BE0195}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{388FC28D-500E-4E1E-AB61-B403E5BE0195}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{388FC28D-500E-4E1E-AB61-B403E5BE0195}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{388FC28D-500E-4E1E-AB61-B403E5BE0195}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BB76089-1058-4FED-BEA6-F1120E19441E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BB76089-1058-4FED-BEA6-F1120E19441E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BB76089-1058-4FED-BEA6-F1120E19441E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BB76089-1058-4FED-BEA6-F1120E19441E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{01CAB882-9D61-40AB-9383-D4293FD9A2C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{01CAB882-9D61-40AB-9383-D4293FD9A2C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{01CAB882-9D61-40AB-9383-D4293FD9A2C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{01CAB882-9D61-40AB-9383-D4293FD9A2C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC6EDB1E-A9BF-4676-B76C-4DFF31975BC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC6EDB1E-A9BF-4676-B76C-4DFF31975BC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC6EDB1E-A9BF-4676-B76C-4DFF31975BC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC6EDB1E-A9BF-4676-B76C-4DFF31975BC5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
