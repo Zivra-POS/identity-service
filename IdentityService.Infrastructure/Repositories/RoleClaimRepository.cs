@@ -12,9 +12,12 @@ public class RoleClaimRepository : GenericRepository<RoleClaim>, IRoleClaimRepos
     {
     }
 
+    #region GetByRoleIdAsync
     public async Task<List<RoleClaim>> GetByRoleIdAsync(Guid roleId, CancellationToken ct = default)
     {
-        return await _set.Where(r => r.RoleId == roleId).ToListAsync(ct);
+        return await _set
+            .Where(r => r.RoleId == roleId)
+            .ToListAsync(ct);
     }
+    #endregion
 }
-

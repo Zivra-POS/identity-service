@@ -3,7 +3,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
-using IdentityService.Core.Services;
 using IdentityService.Infrastructure.Repositories;
 using IdentityService.Infrastructure.Services;
 using ZivraFramework.EFCore.Extentions;

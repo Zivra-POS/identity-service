@@ -1,22 +1,22 @@
 using System.Net;
-using IdentityService.Core.Entities;
-using IdentityService.Core.Interfaces.Repositories;
-using IdentityService.Shared.DTOs.Response;
-using IdentityService.Shared.Response;
-using IdentityService.Core.Interfaces.Services;
-using IdentityService.Core.Mappers;
-using ZivraFramework.Core.Interfaces;
-using ZivraFramework.Core.Utils;
 using System.Security.Cryptography;
+using IdentityService.Core.Entities;
 using IdentityService.Core.Entities.Message;
+using IdentityService.Core.Interfaces.Repositories;
+using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Interfaces.Services.Message;
+using IdentityService.Core.Mappers;
 using IdentityService.Core.Mappers.Auth;
 using IdentityService.Shared.Constants;
 using IdentityService.Shared.DTOs.Request.Auth;
 using IdentityService.Shared.DTOs.Request.User;
+using IdentityService.Shared.DTOs.Response;
 using IdentityService.Shared.DTOs.Response.Auth;
+using IdentityService.Shared.Response;
+using ZivraFramework.Core.Interfaces;
+using ZivraFramework.Core.Utils;
 
-namespace IdentityService.Core.Services;
+namespace IdentityService.Infrastructure.Services;
 
 public class AuthService : IAuthService
 {

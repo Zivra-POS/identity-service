@@ -12,17 +12,24 @@ public class RoleRepository : GenericRepository<Role>, IRoleRepository
     {
     }
 
+    #region GetByIdsAsync
     public async Task<IEnumerable<Role>> GetByIdsAsync(IEnumerable<Guid>? ids, CancellationToken ct = default)
     {
         if (ids == null) return Array.Empty<Role>();
         var idList = ids as IList<Guid> ?? ids.ToList();
         if (idList.Count == 0) return Array.Empty<Role>();
 
-        return await _set.Where(r => idList.Contains(r.Id)).ToListAsync(ct);
+        return await _set
+            .Where(r => idList.Contains(r.Id))
+            .ToListAsync(ct);
     }
+    #endregion
 
+    #region GetByNameAsync
     public async Task<Role?> GetByNameAsync(string name, CancellationToken ct = default)
     {
-        return await _set.FirstOrDefaultAsync(r => r.NormalizedName == name, ct);
+        return await _set
+            .FirstOrDefaultAsync(r => r.NormalizedName == name, ct);
     }
+    #endregion
 }

@@ -16,7 +16,8 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
     public RefreshTokenRepository(IdentityDbContext ctx) : base(ctx)
     {
     }
-
+    
+    #region GetByUserIdAndTokenHashAsync
     public async Task<RefreshToken?> GetByUserIdAndTokenHashAsync(Guid userId, string tokenHash, CancellationToken ct = default)
     {
         return await _set.FirstOrDefaultAsync(x => x.UserId == userId
@@ -24,7 +25,9 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
                                                    && x.Revoked == null
                                                    && x.Expires > DateTime.UtcNow, ct);
     }
-
+    #endregion
+    
+    #region GetByTokenHashAsync
     public async Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, CancellationToken ct = default)
     {
         return await _set
@@ -33,19 +36,21 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
                     .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(x => x.Token == tokenHash && x.Revoked == null && x.Expires > DateTime.UtcNow, ct);
     }
-
+    #endregion
+    
+    #region RevokeAsync
     public async Task RevokeAsync(RefreshToken token, CancellationToken ct = default)
     {
         token.Revoked = DateTime.UtcNow;
-        token.RevokedByIp = token.RevokedByIp; // keep existing info
+        token.RevokedByIp = token.RevokedByIp; 
         token.ModDate = DateTime.UtcNow;
 
         _set.Update(token);
-        // do not call DbContext.SaveChanges here - unit of work will handle persistence
         await Task.CompletedTask;
     }
+    #endregion
 
-    // Added implementations
+    #region GetActiveByUserIdAsync
     public async Task<IEnumerable<RefreshToken>> GetActiveByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await _set
@@ -53,7 +58,9 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
             .Where(x => x.UserId == userId && x.Revoked == null && x.Expires > DateTime.UtcNow)
             .ToListAsync(ct);
     }
-
+    #endregion
+    
+    #region GetByDeviceIdAsync
     public async Task<IEnumerable<RefreshToken>> GetByDeviceIdAsync(string deviceId, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(deviceId)) return Array.Empty<RefreshToken>();
@@ -63,4 +70,5 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
             .Where(x => x.DeviceId == deviceId && x.Revoked == null && x.Expires > DateTime.UtcNow)
             .ToListAsync(ct);
     }
+    #endregion
 }

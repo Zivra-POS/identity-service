@@ -8,14 +8,16 @@ namespace IdentityService.Infrastructure.Repositories;
 
 public class UserClaimRepository : GenericRepository<UserClaim>, IUserClaimRepository
 {
-    #region Constructor
     public UserClaimRepository(IdentityDbContext ctx) : base(ctx)
     {
     }
-    #endregion
 
+    #region GetByUserIdAsync
     public async Task<List<UserClaim>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
-        return await _set.Where(u => u.UserId == userId).ToListAsync(ct);
+        return await _set
+            .Where(u => u.UserId == userId)
+            .ToListAsync(ct);
     }
+    #endregion
 }

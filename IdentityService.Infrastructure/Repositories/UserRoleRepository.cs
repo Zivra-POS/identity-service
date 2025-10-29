@@ -11,9 +11,11 @@ public class UserRoleRepository : GenericRepository<UserRole>, IUserRoleReposito
     public UserRoleRepository(IdentityDbContext ctx) : base(ctx)
     {
     }
-    
+
+    #region GetRowsByUserIdAsync
     public async Task<IEnumerable<UserRole>> GetRowsByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await _set.Where(ur => ur.UserId == userId).ToListAsync(ct);
     }
+    #endregion
 }

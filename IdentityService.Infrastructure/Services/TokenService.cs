@@ -17,6 +17,7 @@ public class TokenService : ITokenService
         _config = config;
     }
 
+    #region GenerateJwtToken
     public string GenerateJwtToken(User user, IEnumerable<string?>? roles)
     {
         var jwt = _config.GetSection("JwtSettings");
@@ -26,32 +27,29 @@ public class TokenService : ITokenService
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        
+
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            // only add username/email if available
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString())
         };
 
         if (!string.IsNullOrWhiteSpace(user.Username))
-        {
             claims.Add(new Claim(JwtRegisteredClaimNames.UniqueName, user.Username));
-        }
 
         if (!string.IsNullOrWhiteSpace(user.Email))
-        {
             claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
-        }
 
-        claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())); // unique token ID
-        
+        if (!string.IsNullOrWhiteSpace(user.FullName))
+            claims.Add(new Claim(JwtRegisteredClaimNames.Name, user.FullName));
+
+        claims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
+
         var safeRoles = roles ?? Enumerable.Empty<string?>();
         var roleClaims = safeRoles
             .Where(r => !string.IsNullOrWhiteSpace(r))
             .Select(r => new Claim(ClaimTypes.Role, r!));
 
         claims.AddRange(roleClaims);
-        
         claims.Add(new Claim("is_active", user.IsActive.ToString()));
 
         var token = new JwtSecurityToken(
@@ -65,4 +63,5 @@ public class TokenService : ITokenService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+    #endregion
 }

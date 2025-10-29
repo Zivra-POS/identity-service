@@ -11,6 +11,7 @@ public class BranchRepository : GenericRepository<Branch>, IBranchRepository
 {
     public BranchRepository(IdentityDbContext ctx) : base(ctx) { }
 
+    #region GetPagedByStoreAsync
     public async Task<PagedResult<Branch>> GetPagedByStoreAsync(PagedQuery query, Guid storeId, CancellationToken ct = default)
     {
         IQueryable<Branch> q = _set.AsNoTracking().Where(b => b.StoreId == storeId);
@@ -41,4 +42,5 @@ public class BranchRepository : GenericRepository<Branch>, IBranchRepository
             Items = items
         };
     }
+    #endregion
 }

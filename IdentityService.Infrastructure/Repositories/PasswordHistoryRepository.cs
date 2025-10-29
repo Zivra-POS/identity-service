@@ -8,14 +8,14 @@ namespace IdentityService.Infrastructure.Repositories;
 
 public class PasswordHistoryRepository : GenericRepository<PasswordHistory>, IPasswordHistoryRepository
 {
-    #region Constructor
     public PasswordHistoryRepository(IdentityDbContext ctx) : base(ctx)
     {
     }
-    #endregion
-
+    
+    #region GetRowByPasswordHashAsync
     public async Task<PasswordHistory?> GetRowByPasswordHashAsync(string passwordHash, CancellationToken cancellationToken = default)
     {
         return await _set.FirstOrDefaultAsync(ph => ph.PasswordHash == passwordHash, cancellationToken);
     }
+    #endregion
 }
