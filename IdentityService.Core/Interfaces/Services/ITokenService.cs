@@ -4,5 +4,5 @@ namespace IdentityService.Core.Interfaces.Services;
 
 public interface ITokenService
 {
-    string GenerateJwtToken(User user, IEnumerable<string?> roles);
+    Task<AccessToken> GenerateJwtToken(User user, IEnumerable<string?> roles);
 }

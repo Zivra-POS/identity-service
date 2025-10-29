@@ -15,6 +15,7 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
     public DbSet<UserClaim> UserClaims => Set<UserClaim>();
     public DbSet<RoleClaim> RoleClaims => Set<RoleClaim>();
     public DbSet<UserLogin> UserLogins => Set<UserLogin>();
+    public DbSet<AccessToken> AccessTokens => Set<AccessToken>();
     public DbSet<UserToken> UserTokens => Set<UserToken>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<PasswordHistory> PasswordHistories => Set<PasswordHistory>();
@@ -44,16 +45,16 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
             e.Property(x => x.ConcurrencyStamp).HasMaxLength(128);
             e.Property(x => x.PhoneNumber).HasMaxLength(32);
             e.Property(x => x.DisplayName).HasMaxLength(256);
-            e.Property(x => x.CreBy).HasMaxLength(100);
-            e.Property(x => x.CreIpAddress).HasMaxLength(64);
-            e.Property(x => x.ModBy).HasMaxLength(100);
-            e.Property(x => x.ModIpAddress).HasMaxLength(64);
-            e.Property(x => x.Address).HasMaxLength(1000);
             e.Property(x => x.Province).HasMaxLength(100);
             e.Property(x => x.City).HasMaxLength(100);
             e.Property(x => x.District).HasMaxLength(100);
             e.Property(x => x.Rt).HasMaxLength(10).HasColumnName("rt");
             e.Property(x => x.Rw).HasMaxLength(10).HasColumnName("rw");
+            e.Property(x => x.CreBy).HasMaxLength(100);
+            e.Property(x => x.CreIpAddress).HasMaxLength(64);
+            e.Property(x => x.ModBy).HasMaxLength(100);
+            e.Property(x => x.ModIpAddress).HasMaxLength(64);
+            e.Property(x => x.Address).HasMaxLength(1000);
         });
 
         // -------------------- Store
@@ -183,6 +184,15 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
              .HasForeignKey(x => x.UserId)
              .OnDelete(DeleteBehavior.Cascade);
         });
+        
+        // -------------------- AccessToken
+        b.Entity<AccessToken>(e =>
+        {
+            e.ToTable("access_token");
+            e.HasIndex(x => new { x.UserId, x.Token }).IsUnique();
+            e.Property(x => x.Token).IsRequired().HasMaxLength(512);
+            e.Property(x => x.RevokedByIp).HasMaxLength(64);
+        });
 
         // -------------------- RefreshToken
         b.Entity<RefreshToken>(e =>
@@ -191,7 +201,6 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
             e.HasIndex(x => new { x.UserId, x.Token }).IsUnique();
             e.Property(x => x.Token).IsRequired().HasMaxLength(256);
             e.Property(x => x.DeviceId).HasMaxLength(128);
-            e.Property(x => x.CreIpAddress).HasMaxLength(64);
             e.Property(x => x.RevokedByIp).HasMaxLength(64);
             e.Property(x => x.ReplacedByToken).HasMaxLength(256);
 
@@ -199,6 +208,11 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
              .WithMany(u => u.RefreshTokens)
              .HasForeignKey(x => x.UserId)
              .OnDelete(DeleteBehavior.Cascade);
+            
+            e.HasOne(x => x.AccessToken)
+                .WithMany()
+                .HasForeignKey(x => x.AccessTokenId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // -------------------- PasswordHistory

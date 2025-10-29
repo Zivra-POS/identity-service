@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using IdentityService.Core.Entities;
+using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -11,14 +12,16 @@ namespace IdentityService.Infrastructure.Services;
 public class TokenService : ITokenService
 {
     private readonly IConfiguration _config;
+    private readonly IAccessTokenRepository _accessTokenRepository;
 
-    public TokenService(IConfiguration config)
+    public TokenService(IConfiguration config, IAccessTokenRepository accessTokenRepository)
     {
         _config = config;
+        _accessTokenRepository = accessTokenRepository;
     }
 
     #region GenerateJwtToken
-    public string GenerateJwtToken(User user, IEnumerable<string?>? roles)
+    public async Task<AccessToken> GenerateJwtToken(User user, IEnumerable<string?>? roles)
     {
         var jwt = _config.GetSection("JwtSettings");
         var secret = jwt["SecretKey"];
@@ -52,16 +55,36 @@ public class TokenService : ITokenService
         claims.AddRange(roleClaims);
         claims.Add(new Claim("is_active", user.IsActive.ToString()));
 
+        var expires = DateTime.UtcNow.AddHours(double.Parse(jwt["ExpireHours"] ?? "3"));
         var token = new JwtSecurityToken(
             issuer: jwt["Issuer"],
             audience: jwt["Audience"],
             claims: claims,
             notBefore: DateTime.UtcNow,
-            expires: DateTime.UtcNow.AddHours(double.Parse(jwt["ExpireHours"] ?? "3")),
+            expires: expires,
             signingCredentials: creds
         );
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        var jwtToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+        var accessToken = new AccessToken
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Token = jwtToken,
+            Expires = expires,
+            Revoked = null,
+            RevokedByIp = null,
+            CreDate = DateTime.UtcNow,
+            CreBy = user.CreBy,
+            CreIpAddress = user.CreIpAddress,
+            ModDate = null,
+            ModBy = null,
+            ModIpAddress = null
+        };
+        
+        await _accessTokenRepository.AddAsync(accessToken);
+        return accessToken;
     }
     #endregion
 }

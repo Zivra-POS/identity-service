@@ -22,7 +22,7 @@ public class RefreshTokenService : IRefreshTokenService
     }
 
     #region GenerateAndStoreRefreshTokenAsync
-    public async Task<string> GenerateAndStoreRefreshTokenAsync(Guid userId, CancellationToken ct = default)
+    public async Task<string> GenerateAndStoreRefreshTokenAsync(Guid userId, Guid accessTokenId, CancellationToken ct = default)
     {
         var raw = GenerateRandomToken();
         var hashed = HashToken(raw);

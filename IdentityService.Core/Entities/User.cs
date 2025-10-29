@@ -78,6 +78,7 @@ public class User : IBaseEntity
     public ICollection<UserClaim> Claims { get; set; } = new List<UserClaim>();
     public ICollection<UserLogin> Logins { get; set; } = new List<UserLogin>();
     public ICollection<UserToken> Tokens { get; set; } = new List<UserToken>();
+    public ICollection<UserToken> UserTokens { get; set; } = new List<UserToken>();
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public ICollection<PasswordHistory> PasswordHistories { get; set; } = new List<PasswordHistory>();
     public ICollection<UserSecurityLog> SecurityLogs { get; set; } = new List<UserSecurityLog>();

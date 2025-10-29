@@ -34,7 +34,20 @@ public class AuthService : IAuthService
     private readonly IEmailVerificationEvent _emailVerificationEvent;
     private readonly IFileHelper _fileHelper;
     
-    public AuthService(IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, ITokenService tokenService, IUnitOfWork unitOfWork, IRefreshTokenService refreshTokenService, IRefreshTokenRepository refreshTokenRepository, IUserTokenRepository userTokenRepository, IFileHelper fileHelper, IUserSecurityLogRepository userSecurityLogRepository, IPasswordHistoryRepository passwordHistoryRepository, IUserRegisteredEvent userRegisteredEvent, IEmailVerificationEvent emailVerificationEvent)
+    public AuthService(
+        IUserRepository userRepository,
+        IRoleRepository roleRepository,
+        IUserRoleRepository userRoleRepository,
+        ITokenService tokenService,
+        IUnitOfWork unitOfWork,
+        IRefreshTokenService refreshTokenService,
+        IRefreshTokenRepository refreshTokenRepository,
+        IUserTokenRepository userTokenRepository,
+        IFileHelper fileHelper,
+        IUserSecurityLogRepository userSecurityLogRepository,
+        IPasswordHistoryRepository passwordHistoryRepository,
+        IUserRegisteredEvent userRegisteredEvent,
+        IEmailVerificationEvent emailVerificationEvent)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
@@ -411,17 +424,15 @@ public class AuthService : IAuthService
             };
             
             await _userSecurityLogRepository.AddAsync(securityLog);
-            
+
+            var token = await _tokenService.GenerateJwtToken(user, roleNames);
+            var refreshToken = await _refreshTokenService.GenerateAndStoreRefreshTokenAsync(user.Id, token.Id);
+
             await _unitOfWork.SaveChangesAsync();
-
-            var token = _tokenService.GenerateJwtToken(user, roleNames);
-            var refreshToken = await _refreshTokenService.GenerateAndStoreRefreshTokenAsync(user.Id);
-
-            var resp = AuthMapper.ToAuthResponse(user, roleNames, token, refreshToken);
-
             await _unitOfWork.CommitTransactionAsync();
+            
             Logger.Info($"User '{user.Username}' berhasil login.");
-
+            var resp = AuthMapper.ToAuthResponse(user, roleNames, token.Token, refreshToken);
             return Result<AuthResponse>.Success(resp);
         }
         catch (Exception e)
@@ -722,18 +733,22 @@ public class AuthService : IAuthService
         }
     }
     #endregion
-
+    
+    #region GenerateRandomToken
     private static string GenerateRandomToken(int size = 48)
     {
         var bytes = new byte[size];
         RandomNumberGenerator.Fill(bytes);
         return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
     }
-
+    #endregion
+    
+    #region HashToken
     private static string HashToken(string token)
     {
         var bytes = System.Text.Encoding.UTF8.GetBytes(token);
         var hash = SHA256.HashData(bytes);
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
+    #endregion
 }

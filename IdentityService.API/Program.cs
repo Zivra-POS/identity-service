@@ -1,6 +1,7 @@
 using System.Text;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using IdentityService.API.Extensions;
 using IdentityService.Core.Interfaces.Services.Message;
 using IdentityService.Infrastructure.Persistence;
 using IdentityService.Infrastructure.Services.Message;
@@ -39,41 +40,7 @@ Logger.Configure(logsDirectory: loggerOptions?.LogsDirectory, environmentGetter:
 var jwt = builder.Configuration.GetSection("JwtSettings");
 var key = Encoding.UTF8.GetBytes(jwt["SecretKey"]!);
 
-builder.Services.AddAuthentication(o =>
-    {
-        o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        o.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(o =>
-    {
-        o.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(key)
-        };
-        o.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                if (context.Request.Cookies.TryGetValue("access_token", out var token))
-                {
-                    Console.WriteLine($"✅ Token dari Cookie terbaca: {token.Substring(0, 20)}...");
-                    context.Token = token;
-                }
-                else
-                {
-                    Console.WriteLine("❌ Cookie 'access_token' tidak ditemukan di request.");
-                }
-                return Task.CompletedTask;
-            }
-        };
-    });
-
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // File helper
 builder.Services.AddScoped<IFileHelper>(sp =>

@@ -106,8 +106,8 @@ public class AuthController : ControllerBase
         
         var roleNames = user.UserRoles.Select(ur => ur.Role?.Name).Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r!).ToArray();
 
-        var newJwt = _tokenService.GenerateJwtToken(user, roleNames);
-        var resp = AuthMapper.ToAuthResponse(user, roleNames, newJwt, newRawToken);
+        var newJwt = await _tokenService.GenerateJwtToken(user, roleNames);
+        var resp = AuthMapper.ToAuthResponse(user, roleNames, newJwt.Token, newRawToken);
 
         var jwtHours = int.TryParse(_config["JwtSettings:ExpireHours"], out var h) ? h : 3;
         var refreshDays = int.TryParse(_config["JwtSettings:RefreshTokenDays"], out var d) ? d : 30;
@@ -128,7 +128,7 @@ public class AuthController : ControllerBase
             Expires = DateTime.UtcNow.AddDays(refreshDays)
         };
 
-        Response.Cookies.Append("access_token", newJwt, accessCookieOptions);
+        Response.Cookies.Append("access_token", newJwt.Token, accessCookieOptions);
         Response.Cookies.Append("refresh_token", newRawToken, refreshCookieOptions);
 
         return Ok(resp);

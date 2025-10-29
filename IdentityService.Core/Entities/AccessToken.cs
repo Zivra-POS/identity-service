@@ -1,19 +1,16 @@
-using System;
 using ZivraFramework.Core.Interfaces;
 
 namespace IdentityService.Core.Entities;
 
-public class RefreshToken : IBaseEntity
+public class AccessToken : IBaseEntity
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid AccessTokenId { get; set; }
+
     public Guid UserId { get; set; }
     public string Token { get; set; } = default!;              
     public DateTime Expires { get; set; }
     public DateTime? Revoked { get; set; }
-    public string? RevokedByIp { get; set; }
-    public string? ReplacedByToken { get; set; }               
-    public string? DeviceId { get; set; }                   
+    public string? RevokedByIp { get; set; }              
     public bool IsActive => Revoked == null && DateTime.UtcNow < Expires;
     
     public DateTime CreDate { get; set; }
@@ -24,5 +21,4 @@ public class RefreshToken : IBaseEntity
     public string? ModIpAddress { get; set; }
 
     public User? User { get; set; }
-    public AccessToken? AccessToken { get; set; }
 }
