@@ -31,6 +31,7 @@ public class RefreshTokenService : IRefreshTokenService
 
         var rt = new RefreshToken
         {
+            AccessTokenId = accessTokenId,
             UserId = userId,
             Token = hashed,
             Expires = DateTime.UtcNow.AddDays(refreshDays),

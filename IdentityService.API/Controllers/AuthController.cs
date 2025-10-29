@@ -15,14 +15,21 @@ public class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly IRefreshTokenService _refreshTokenService;
     private readonly ITokenService _tokenService;
+    private readonly ICurrentUserService _currentUser;
     private readonly IConfiguration _config;
 
-    public AuthController(IAuthService authService, IRefreshTokenService refreshTokenService, ITokenService tokenService, IConfiguration config)
+    public AuthController(
+        IAuthService authService,
+        IRefreshTokenService refreshTokenService,
+        ITokenService tokenService,
+        IConfiguration config,
+        ICurrentUserService currentUser)
     {
         _authService = authService;
         _refreshTokenService = refreshTokenService;
         _tokenService = tokenService;
         _config = config;
+        _currentUser = currentUser;
     }
 
     #region Register
@@ -38,6 +45,7 @@ public class AuthController : ControllerBase
     #endregion
     
     #region RegisterStaff
+    [Authorize]
     [HttpPost("register-staff")]
     public async Task<IActionResult> RegisterStaff([FromForm] RegisterStaffRequest req)
     {
@@ -47,6 +55,7 @@ public class AuthController : ControllerBase
     #endregion
 
     #region UpdateUserAsync
+    [Authorize]
     [HttpPut()]
     public async Task<IActionResult> UpdateUserAsync([FromForm] UpdateUserRequest req)
     {
@@ -187,6 +196,7 @@ public class AuthController : ControllerBase
     #endregion
     
     #region VerifyEmail
+    [AllowAnonymous]
     [HttpPost("verify-email")]
     public async Task<IActionResult> VerifyEmail(string token)
     {
@@ -194,4 +204,21 @@ public class AuthController : ControllerBase
         return StatusCode((int)r.StatusCode, r);
     }
     #endregion
+    
+    #region Me
+    [HttpGet("me")]
+    [Authorize]
+    public IActionResult Me()
+    {
+        return Ok(new
+        {
+            Id = _currentUser.UserId,
+            _currentUser.Username,
+            _currentUser.FullName,
+            _currentUser.Email,
+            _currentUser.Roles
+        });
+    }
+    #endregion
+
 }

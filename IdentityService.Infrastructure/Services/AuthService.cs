@@ -693,7 +693,7 @@ public class AuthService : IAuthService
         try
         {
             var hashToken = HashToken(token);
-            var userToken = await _userTokenRepository.GetByNameAndValueAsync("EmailVerification", hashToken);
+            var userToken = await _userTokenRepository.GetByNameAndValueAsync("EmailVerification", token);
             if (userToken == null)
                 return Result<string>.Failure(new List<string> { "Token verifikasi tidak valid." }, "Verifikasi gagal.");
             

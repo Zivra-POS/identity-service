@@ -27,20 +27,18 @@ public static class DependencyInjection
         services.AddScoped<IRoleClaimRepository, RoleClaimRepository>();
         services.AddScoped<IUserLoginRepository, UserLoginRepository>();
         services.AddScoped<IUserTokenRepository, UserTokenRepository>();
+        services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
         services.AddScoped<IPasswordHistoryRepository, PasswordHistoryRepository>();
         services.AddScoped<IUserSecurityLogRepository, UserSecurityLogRepository>();
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();
-        // Branch repository & service
         services.AddScoped<IBranchRepository, BranchRepository>();
+        
         services.AddScoped<IBranchService, BranchService>();
-
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
-
-        // Add Role services
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IRoleClaimService, RoleClaimService>();
         services.AddScoped<IUserClaimService, UserClaimService>();

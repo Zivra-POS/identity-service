@@ -3,6 +3,7 @@ using System.Text;
 using IdentityService.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
 namespace IdentityService.API.Extensions;
@@ -11,8 +12,8 @@ public static class AuthenticationExtension
 {
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration config)
     {
-        var jwt = config.GetSection("Jwt");
-        var key = Encoding.UTF8.GetBytes(jwt["Key"]!);
+        var jwt = config.GetSection("JwtSettings");
+        var key = Encoding.UTF8.GetBytes(jwt["SecretKey"]!);
 
         services.AddAuthentication(o =>
         {
@@ -43,16 +44,17 @@ public static class AuthenticationExtension
                 },
                 OnTokenValidated = async context =>
                 {
+                    context.Request.Cookies.TryGetValue("access_token", out var cookieToken);
+                    
                     var db = context.HttpContext.RequestServices.GetRequiredService<IdentityDbContext>();
 
-                    if (context.SecurityToken is not JwtSecurityToken jwtToken)
+                    if (context.SecurityToken is not JsonWebToken jwtToken)
                     {
                         context.Fail("Token tidak valid.");
                         return;
                     }
 
-                    var raw = jwtToken.RawData;
-                    var tokenRecord = await db.AccessTokens.FirstOrDefaultAsync(t => t.Token == raw);
+                    var tokenRecord = await db.AccessTokens.FirstOrDefaultAsync(t => t.Token == cookieToken);
 
                     if (tokenRecord is not { Revoked: null })
                     {

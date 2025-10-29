@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option csharp_namespace = "IdentityService.Infrastructure.Services.Grpc";
+
+package auth;
+
+service AuthenticationService {
+  rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
+  rpc GetUserInfo (GetUserInfoRequest) returns (GetUserInfoResponse);
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool is_valid = 1;
+  string user_id = 2;
+  string username = 3;
+  string full_name = 4;
+  string email = 5;
+  repeated string roles = 6;
+  string error_message = 7;
+}
+
+message GetUserInfoRequest {
+  string token = 1;
+}
+
+message GetUserInfoResponse {
+  bool is_valid = 1;
+  string user_id = 2;
+  string username = 3;
+  string full_name = 4;
+  string email = 5;
+  repeated string roles = 6;
+  string error_message = 7;
+}

@@ -1,12 +1,10 @@
-using System.Text;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using IdentityService.API.Extensions;
 using IdentityService.Core.Interfaces.Services.Message;
 using IdentityService.Infrastructure.Persistence;
+using IdentityService.Infrastructure.Services.Grpc;
 using IdentityService.Infrastructure.Services.Message;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using ZivraFramework.Core.Extentions;
 using ZivraFramework.Core.Interfaces;
 using ZivraFramework.Core.Models;
@@ -16,6 +14,9 @@ using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
+
+// Add gRPC services
+builder.Services.AddGrpc();
 
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
@@ -37,9 +38,6 @@ var loggerOptions = builder.Configuration.GetSection("Logging").Get<LoggerOption
 var envFromConfig = builder.Configuration.GetValue<string>("Environment");
 Logger.Configure(logsDirectory: loggerOptions?.LogsDirectory, environmentGetter: () => envFromConfig);
 
-var jwt = builder.Configuration.GetSection("JwtSettings");
-var key = Encoding.UTF8.GetBytes(jwt["SecretKey"]!);
-
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
 // File helper
@@ -56,9 +54,10 @@ builder.Services.AddKafkaProducer(builder.Configuration);
 builder.Services.AddScoped<IUserRegisteredEvent, UserRegisteredEvent>();
 builder.Services.AddScoped<IEmailVerificationEvent, EmailVerificationEvent>();
 
+builder.Services.AddScoped<GrpcAuthService>();
+
 Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
 Console.WriteLine($"Kafka BootstrapServers: {builder.Configuration["Kafka:BootstrapServers"]}");
-
 
 
 var app = builder.Build();
@@ -72,5 +71,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapGrpcService<GrpcAuthService>();
 
 app.Run();

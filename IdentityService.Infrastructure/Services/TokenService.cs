@@ -6,6 +6,7 @@ using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using ZivraFramework.Core.Interfaces;
 
 namespace IdentityService.Infrastructure.Services;
 
@@ -13,11 +14,13 @@ public class TokenService : ITokenService
 {
     private readonly IConfiguration _config;
     private readonly IAccessTokenRepository _accessTokenRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public TokenService(IConfiguration config, IAccessTokenRepository accessTokenRepository)
+    public TokenService(IConfiguration config, IAccessTokenRepository accessTokenRepository, IUnitOfWork unitOfWork)
     {
         _config = config;
         _accessTokenRepository = accessTokenRepository;
+        _unitOfWork = unitOfWork;
     }
 
     #region GenerateJwtToken
@@ -84,6 +87,7 @@ public class TokenService : ITokenService
         };
         
         await _accessTokenRepository.AddAsync(accessToken);
+        await _unitOfWork.SaveChangesAsync();
         return accessToken;
     }
     #endregion
