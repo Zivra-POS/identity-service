@@ -97,15 +97,16 @@ public class AuthService : IAuthService
                 Email = req.Email,
                 NormalizedEmail = req.Email.ToUpperInvariant(),
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                CreDate = DateTime.UtcNow,
-                CreBy = req.CreBy,
-                CreIpAddress = req.CreIpAddress,
                 Address = req.Address,
                 Province = req.Province,
                 City = req.City,
                 District = req.District,
                 Rt = req.Rt,
-                Rw = req.Rw
+                Rw = req.Rw,
+                IsActive = true,
+                CreDate = DateTime.UtcNow,
+                CreBy = req.CreBy,
+                CreIpAddress = req.CreIpAddress,
             };
 
             await _userRepository.AddAsync(user);
@@ -239,6 +240,7 @@ public class AuthService : IAuthService
                 District = req.District,
                 Rt = req.Rt,
                 Rw = req.Rw,
+                IsFirstLogin = false,
                 CreDate = req.CreDate,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
@@ -693,7 +695,7 @@ public class AuthService : IAuthService
         try
         {
             var hashToken = HashToken(token);
-            var userToken = await _userTokenRepository.GetByNameAndValueAsync("EmailVerification", token);
+            var userToken = await _userTokenRepository.GetByNameAndValueAsync("EmailVerification", hashToken);
             if (userToken == null)
                 return Result<string>.Failure(new List<string> { "Token verifikasi tidak valid." }, "Verifikasi gagal.");
             

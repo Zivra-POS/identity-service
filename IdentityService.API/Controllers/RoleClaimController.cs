@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using IdentityService.Core.Interfaces.Services;
+using IdentityService.Shared.DTOs.Request.Role;
 using IdentityService.Shared.DTOs.RoleClaim;
 
 namespace IdentityService.API.Controllers;

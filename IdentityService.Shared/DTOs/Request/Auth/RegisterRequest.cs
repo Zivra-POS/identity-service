@@ -29,7 +29,6 @@ public class RegisterRequest : IBaseEntity
 
     [MaxLength(10)]
     public string? Rw { get; set; }
-
     public DateTime CreDate { get; set; }
     public string? CreBy { get; set; }
     public string? CreIpAddress { get; set; }

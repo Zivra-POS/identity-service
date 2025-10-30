@@ -1,6 +1,4 @@
-using System;
-
-namespace IdentityService.Shared.DTOs.RoleClaim;
+namespace IdentityService.Shared.DTOs.Request.Role;
 
 public class RoleClaimRequest
 {

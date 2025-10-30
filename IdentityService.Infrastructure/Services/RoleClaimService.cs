@@ -2,6 +2,7 @@ using IdentityService.Core.Entities;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.Role;
+using IdentityService.Shared.DTOs.Request.Role;
 using IdentityService.Shared.DTOs.RoleClaim;
 using IdentityService.Shared.Response;
 using ZivraFramework.Core.Interfaces;

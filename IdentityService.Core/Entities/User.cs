@@ -62,6 +62,8 @@ public class User : IBaseEntity
     public string? Rw { get; set; }
 
     public bool IsActive { get; set; } = true;
+    
+    public bool IsFirstLogin { get; set; } = false;
 
     public DateTime CreDate { get; set; }
     [MaxLength(100)]

@@ -1,4 +1,5 @@
 using FluentValidation;
+using IdentityService.Shared.DTOs.Request.Role;
 using IdentityService.Shared.DTOs.RoleClaim;
 
 namespace IdentityService.API.Validators.Role;

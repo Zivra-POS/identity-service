@@ -1,3 +1,4 @@
+using IdentityService.Shared.DTOs.Request.Role;
 using IdentityService.Shared.DTOs.RoleClaim;
 using IdentityService.Shared.Response;
 

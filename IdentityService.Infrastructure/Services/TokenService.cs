@@ -57,6 +57,9 @@ public class TokenService : ITokenService
 
         claims.AddRange(roleClaims);
         claims.Add(new Claim("is_active", user.IsActive.ToString()));
+        
+        if (user.StoreId.HasValue)
+            claims.Add(new Claim("store_id", user.StoreId.Value.ToString()));
 
         var expires = DateTime.UtcNow.AddHours(double.Parse(jwt["ExpireHours"] ?? "3"));
         var token = new JwtSecurityToken(

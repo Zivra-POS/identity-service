@@ -1,48 +1,26 @@
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using IdentityService.Shared.Constants;
-using ZivraFramework.Core.Interfaces;
 
-namespace IdentityService.Core.Entities;
+namespace IdentityService.Shared.DTOs.Response.Store;
 
-public class Store : IBaseEntity
+public class StoreResponse
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-
-    [MaxLength(256)]
+    public Guid Id { get; set; }
     public string Name { get; set; } = default!;
-
-    [MaxLength(100)]
     public string? Code { get; set; }
-
-    [MaxLength(1000)]
     public string? Address { get; set; }
-
-    [MaxLength(100)]
     public string? Province { get; set; }
-
-    [MaxLength(100)]
     public string? City { get; set; }
-
-    [MaxLength(100)]
     public string? District { get; set; }
-
-    [MaxLength(10)]
     public string? Rt { get; set; }
-
-    [MaxLength(10)]
     public string? Rw { get; set; }
-    [MaxLength(32)]
     public string? Phone { get; set; }
     public bool IsActive { get; set; }
-    public CostingMethod CostingMethod { get; set; } = CostingMethod.FIFO;
+    public CostingMethod CostingMethod { get; set; }
+
     public DateTime CreDate { get; set; }
     public string? CreBy { get; set; }
     public string? CreIpAddress { get; set; }
     public DateTime? ModDate { get; set; }
     public string? ModBy { get; set; }
     public string? ModIpAddress { get; set; }
-
-    public ICollection<Branch> Branches { get; set; } = new List<Branch>();
-    public ICollection<User> Users { get; set; } = new List<User>();
 }

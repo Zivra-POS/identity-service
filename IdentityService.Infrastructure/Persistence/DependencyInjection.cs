@@ -34,8 +34,12 @@ public static class DependencyInjection
         services.AddScoped<IUserSecurityLogRepository, UserSecurityLogRepository>();
         services.AddScoped<IUserSessionRepository, UserSessionRepository>();
         services.AddScoped<IBranchRepository, BranchRepository>();
+        services.AddScoped<IStoreRepository, StoreRepository>();
+        services.AddScoped<IUserBranchRepository, UserBranchRepository>();
         
         services.AddScoped<IBranchService, BranchService>();
+        services.AddScoped<IStoreService, StoreService>();
+        services.AddScoped<IUserBranchService, UserBranchService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ITokenService, TokenService>();
         services.AddScoped<IRefreshTokenService, RefreshTokenService>();
