@@ -10,7 +10,6 @@ using ZivraFramework.Core.Extentions;
 using ZivraFramework.Core.Interfaces;
 using ZivraFramework.Core.Models;
 using ZivraFramework.Core.Utils;
-using System.Reflection;
 using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,16 +19,8 @@ builder.Services.AddControllers();
 // Add gRPC services
 builder.Services.AddGrpc();
 
-// Keep existing FluentValidation setup
-builder.Services.AddFluentValidationAutoValidation();
-builder.Services.AddFluentValidationClientsideAdapters();
-
-// Add validators
-var validatorAssemblies = AppDomain.CurrentDomain.GetAssemblies()
-    .Where(a => !a.IsDynamic && a.GetName().Name != null && a.GetName().Name!.StartsWith("IdentityService"))
-    .ToArray();
-
-builder.Services.AddValidatorsFromAssemblies(validatorAssemblies);
+// Add FluentValidation with automatic Result wrapper integration
+builder.Services.AddFluentValidationWithResult();
 
 // Add Global Exception Handler with Result wrapper
 builder.Services.AddGlobalExceptionHandler();
@@ -77,7 +68,7 @@ Console.WriteLine($"Kafka BootstrapServers: {builder.Configuration["Kafka:Bootst
 
 var app = builder.Build();
 
-// Use Global Exception Handler (must be first in pipeline)
+// Use Global Exception Handler 
 app.UseGlobalExceptionHandler();
 
 app.UseSwagger();

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using ZivraFramework.Core.API.Helpers;
 
 namespace IdentityService.API.Extensions;
 
@@ -36,7 +37,7 @@ public static class AuthenticationExtension
             {
                 OnMessageReceived = context =>
                 {
-                    var token = GetTokenFromRequest(context.Request);
+                    var token = AccessTokenHelper.GetTokenFromRequest(context.Request);
                     if (!string.IsNullOrEmpty(token))
                         context.Token = token;
 
@@ -44,7 +45,7 @@ public static class AuthenticationExtension
                 },
                 OnTokenValidated = async context =>
                 {
-                    var token = GetTokenFromRequest(context.Request);
+                    var token = AccessTokenHelper.GetTokenFromRequest(context.Request);
                     
                     var db = context.HttpContext.RequestServices.GetRequiredService<IdentityDbContext>();
 
@@ -71,23 +72,5 @@ public static class AuthenticationExtension
         });
 
         return services;
-    }
-
-    private static string? GetTokenFromRequest(HttpRequest request)
-    {
-        // First try to get from Authorization header
-        var authorization = request.Headers["Authorization"].FirstOrDefault();
-        if (!string.IsNullOrEmpty(authorization) && authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
-        {
-            return authorization.Substring("Bearer ".Length).Trim();
-        }
-
-        // Then try to get from cookie
-        if (request.Cookies.TryGetValue("access_token", out var cookieToken))
-        {
-            return cookieToken;
-        }
-
-        return null;
     }
 }

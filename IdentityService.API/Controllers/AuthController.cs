@@ -4,6 +4,7 @@ using IdentityService.Core.Mappers.Auth;
 using IdentityService.Shared.DTOs.Request.Auth;
 using IdentityService.Shared.DTOs.Request.User;
 using Microsoft.AspNetCore.Authorization;
+using ZivraFramework.Core.API.Helpers;
 
 namespace IdentityService.API.Controllers;
 
@@ -29,27 +30,6 @@ public class AuthController : ControllerBase
         _tokenService = tokenService;
         _config = config;
         _currentUser = currentUser;
-    }
-
-    private string? GetRefreshTokenFromRequest()
-    {
-        // Try to get refresh token from X-Refresh-Token header first
-        if (Request.Headers.TryGetValue("X-Refresh-Token", out var refreshTokenHeader))
-        {
-            var headerToken = refreshTokenHeader.FirstOrDefault();
-            if (!string.IsNullOrEmpty(headerToken))
-            {
-                return headerToken;
-            }
-        }
-
-        // Fallback to cookie
-        if (Request.Cookies.TryGetValue("refresh_token", out var refreshTokenCookie))
-        {
-            return refreshTokenCookie;
-        }
-
-        return null;
     }
 
     #region Register
@@ -124,7 +104,7 @@ public class AuthController : ControllerBase
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh()
     {
-        var existingRaw = GetRefreshTokenFromRequest();
+        var existingRaw = RefreshTokenHelper.GetRefreshTokenFromRequest(Request);
         if (string.IsNullOrEmpty(existingRaw))
             return Unauthorized(new { message = "Refresh token tidak ditemukan." });
 
@@ -172,7 +152,7 @@ public class AuthController : ControllerBase
     {
         var userId = (Guid)_currentUser.UserId!;
         
-        var refreshToken = GetRefreshTokenFromRequest();
+        var refreshToken = RefreshTokenHelper.GetRefreshTokenFromRequest(Request);
         if (string.IsNullOrWhiteSpace(refreshToken))
             return BadRequest(new { message = "Refresh token tidak ditemukan." });
 
@@ -198,7 +178,6 @@ public class AuthController : ControllerBase
         if (!r.IsSuccess)
             return StatusCode((int)r.StatusCode, r);
         
-        // Hapus cookies untuk device saat ini juga
         Response.Cookies.Delete("access_token");
         Response.Cookies.Delete("refresh_token");
 

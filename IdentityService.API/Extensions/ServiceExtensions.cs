@@ -1,6 +1,8 @@
 using IdentityService.API.Middleware;
 using IdentityService.API.Filters;
 using FluentValidation;
+using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Mvc;
 using System.Reflection;
 
 namespace IdentityService.API.Extensions;
@@ -9,23 +11,31 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddGlobalExceptionHandler(this IServiceCollection services)
     {
-        // Add Result wrapper filter to automatically wrap responses in Result<T>
         services.AddControllers(options =>
         {
             options.Filters.Add<ResultWrapperFilter>();
+            options.Filters.Add<ModelValidationActionFilter>();
         });
         
         return services;
     }
 
-    public static IServiceCollection AddFluentValidationWithResult(this IServiceCollection services, Assembly assembly)
+    public static IServiceCollection AddFluentValidationWithResult(this IServiceCollection services)
     {
-        // Register FluentValidation
-        services.AddValidatorsFromAssembly(assembly);
+        var validatorAssemblies = AppDomain.CurrentDomain.GetAssemblies()
+            .Where(a => !a.IsDynamic && 
+                       a.GetName().Name != null && 
+                       a.GetName().Name.StartsWith("IdentityService"))
+            .ToArray();
+
+        services.AddFluentValidationAutoValidation();
+        services.AddFluentValidationClientsideAdapters();
+        services.AddValidatorsFromAssemblies(validatorAssemblies);
         
-        // Register MediatR with validation behavior (optional, jika menggunakan MediatR)
-        // services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
-        // services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.SuppressModelStateInvalidFilter = true;
+        });
         
         return services;
     }
