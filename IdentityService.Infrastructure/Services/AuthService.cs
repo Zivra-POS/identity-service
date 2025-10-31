@@ -1,6 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using IdentityService.Core.Entities;
+using IdentityService.Core.Exceptions;
 using IdentityService.Core.Entities.Message;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
@@ -13,6 +14,7 @@ using IdentityService.Shared.DTOs.Request.User;
 using IdentityService.Shared.DTOs.Response;
 using IdentityService.Shared.DTOs.Response.Auth;
 using IdentityService.Shared.Response;
+using Microsoft.Extensions.Configuration;
 using ZivraFramework.Core.Interfaces;
 using ZivraFramework.Core.Utils;
 
@@ -33,6 +35,7 @@ public class AuthService : IAuthService
     private readonly IUserRegisteredEvent _userRegisteredEvent;
     private readonly IEmailVerificationEvent _emailVerificationEvent;
     private readonly IFileHelper _fileHelper;
+    private readonly IConfiguration _configuration;
     
     public AuthService(
         IUserRepository userRepository,
@@ -47,7 +50,8 @@ public class AuthService : IAuthService
         IUserSecurityLogRepository userSecurityLogRepository,
         IPasswordHistoryRepository passwordHistoryRepository,
         IUserRegisteredEvent userRegisteredEvent,
-        IEmailVerificationEvent emailVerificationEvent)
+        IEmailVerificationEvent emailVerificationEvent,
+        IConfiguration configuration)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
@@ -62,6 +66,7 @@ public class AuthService : IAuthService
         _passwordHistoryRepository = passwordHistoryRepository;
         _userRegisteredEvent = userRegisteredEvent;
         _emailVerificationEvent = emailVerificationEvent;
+        _configuration = configuration;
     }
 
     #region RegisterAsync
@@ -82,15 +87,12 @@ public class AuthService : IAuthService
                 Logger.Error($"Email {req.Email} telah digunakan.");
                 errors.Add("Email telah digunakan.");
             }
-
-            if (errors.Count > 0)
-            {
-                return Result<AuthResponse>.Failure(errors, "Registrasi tidak berhasil.");
-            }
+            
+            if (errors.Count > 0) throw new ValidationException(errors);
             
             var user = new User
             {
-                Id = Guid.NewGuid(),
+                Id = req.Id,
                 FullName = req.FullName,
                 Username = req.Username,
                 NormalizedUsername = req.Username.ToUpperInvariant(),
@@ -175,7 +177,7 @@ public class AuthService : IAuthService
                 FullName = req.FullName,
                 Email = user.Email,
                 Username = user.Username,
-                Token = verifyToken,
+                Token = verifyToken.Data,
             });
             
             await _unitOfWork.SaveChangesAsync();
@@ -199,7 +201,7 @@ public class AuthService : IAuthService
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            List<string> errors = new();
+            List<string> errors = [];
             if (await _userRepository.ExistsUsernameAsync(req.Username))
             {
                 Logger.Error($"Username '{req.Username}' telah digunakan.");
@@ -212,10 +214,7 @@ public class AuthService : IAuthService
                 errors.Add("Email telah digunakan.");
             }
             
-            if (errors.Count > 0)
-            {
-                return Result<RegisterStaffResponse>.Failure(errors, "Pendaftaran staff gagal.");
-            }
+            if (errors.Count > 0) throw new ValidationException(errors);
             
             var imageUrl = await _fileHelper.SaveAsync(req.ProfileImage, "profiles");
             
@@ -306,7 +305,7 @@ public class AuthService : IAuthService
                 FullName = user.FullName,
                 Email = user.Email,
                 Username = user.Username,
-                Token = verifyToken,
+                Token = verifyToken.Data,
             });
             
             await _unitOfWork.SaveChangesAsync();
@@ -335,7 +334,7 @@ public class AuthService : IAuthService
             if (user == null)
             {
                 Logger.Error($"User dengan Id '{req.Id}' tidak ditemukan.");
-                return Result<UpdateUserResponse>.Failure(new List<string> { "User tidak ditemukan." }, "Update user gagal.");
+                throw new NotFoundException("User tidak ditemukan.");
             }
             
             var imageUrl = await _fileHelper.ReplaceIfChangedAsync(req.ProfilImage, user.ProfileUrl, "profiles");
@@ -390,24 +389,49 @@ public class AuthService : IAuthService
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            List<string> errors = new();
-            
             var user = await _userRepository.GetByUsernameAsync(req.Username);
             if (user is null)
-                errors.Add("Username tidak ditemukan.");
-            
-            if (user is not null && !BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash))
-                errors.Add("Password salah.");
-            
-            if (errors.Count > 0)
-                return Result<AuthResponse>.Failure(errors);
-
-            if (user is { EmailConfirmed: false })
             {
-                return Result<AuthResponse>.Failure(["Email belum terverifikasi."], "Login gagal.", HttpStatusCode.Forbidden);
+                throw new NotFoundException("Username tidak ditemukan.");
             }
 
-            var userRoles = await _userRoleRepository.GetRowsByUserIdAsync(user!.Id);
+            if (user.IsLockedOut())
+            {
+                var lockoutMessage = user.LockoutEnd.HasValue 
+                    ? $"Akun terkunci sampai {user.LockoutEnd.Value:dd/MM/yyyy HH:mm}"
+                    : "Akun terkunci";
+                
+                throw new BusinessException(lockoutMessage, HttpStatusCode.Locked);
+            }
+
+            var isPasswordValid = BCrypt.Net.BCrypt.Verify(req.Password, user.PasswordHash);
+            if (!isPasswordValid)
+            {
+                var maxAttempts = _configuration.GetValue("LockoutSettings:MaxFailedAttempts", 5);
+                var lockoutMinutes = _configuration.GetValue("LockoutSettings:LockoutMinutes", 30);
+                
+                user.IncrementAccessFailedCount(maxAttempts, lockoutMinutes);
+                _userRepository.Update(user);
+                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CommitTransactionAsync();
+
+                var remainingAttempts = Math.Max(0, maxAttempts - user.AccessFailedCount);
+                var errorMessage = user.IsLockedOut() 
+                    ? $"Password salah. Akun terkunci sampai {user.LockoutEnd?.ToString("dd/MM/yyyy HH:mm")}"
+                    : $"Password salah. Sisa percobaan: {remainingAttempts}";
+
+                throw new ValidationException(errorMessage);
+            }
+
+            if (!user.EmailConfirmed)
+            {
+                throw new ForbiddenException("Email belum terverifikasi.");
+            }
+
+            user.ResetAccessFailedCount();
+            _userRepository.Update(user);
+
+            var userRoles = await _userRoleRepository.GetRowsByUserIdAsync(user.Id);
             var roleNames = userRoles
                 .Select(ur => ur.Role?.Name)
                 .Where(rn => !string.IsNullOrWhiteSpace(rn))
@@ -477,7 +501,7 @@ public class AuthService : IAuthService
         {
             Logger.Error("Logout gagal.", e);
             await _unitOfWork.RollbackTransactionAsync();
-            return Result<string>.Failure(new List<string> { "Terjadi kesalahan saat logout." }, "Logout gagal.");
+            throw;
         }
     }
     #endregion
@@ -490,7 +514,7 @@ public class AuthService : IAuthService
         {
             var user = await _userRepository.GetByEmailAsync(req.Email);
             if (user == null)
-                return Result<ForgotPasswordResponse>.Failure(new List<string> { "Email tidak terdaftar." }, "Request reset gagal.");
+                throw new NotFoundException("Email tidak terdaftar.");
 
             var rawToken = GenerateRandomToken();
             var hashedToken = HashToken(rawToken);
@@ -547,20 +571,20 @@ public class AuthService : IAuthService
             var hashToken = HashToken(req.Token);
             var userToken = await _userTokenRepository.GetByNameAndValueAsync("PasswordReset", hashToken);
             if (userToken == null)
-                return Result<string>.Failure(["Token reset tidak valid."], "Reset gagal.");
+                throw new ValidationException("Token reset tidak valid.");
 
             var expiryHours = 1;
             if (userToken.CreDate.AddHours(expiryHours) < DateTime.UtcNow)
             {
                 await _userTokenRepository.DeleteAsync(userToken);
-                return Result<string>.Failure(["Token reset telah kedaluwarsa."], "Reset gagal.");
+                throw new ValidationException("Token reset telah kedaluwarsa.");
             }
 
             var user = await _userRepository.GetByIdAsync(userToken.UserId);
             if (user == null)
             {
                 await _userTokenRepository.DeleteAsync(userToken);
-                return Result<string>.Failure(["User tidak ditemukan."], "Reset gagal.");
+                throw new NotFoundException("User tidak ditemukan.");
             }
             
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
@@ -572,7 +596,7 @@ public class AuthService : IAuthService
             if (passwordHistory is not null)
             {
                 Logger.Error("Password telah digunakan sebelumnya.");
-                return Result<string>.Failure(["Password telah digunakan sebelumnya."], "Reset gagal.");
+                throw new ValidationException("Password telah digunakan sebelumnya.");
             }
 
             await _userTokenRepository.DeleteAsync(userToken);
@@ -611,7 +635,7 @@ public class AuthService : IAuthService
     #endregion
     
     #region SendVerifyEmailAsync
-    public async Task<string> SendVerifyEmailAsync(SendVerifyEmailRequest req, bool withTxn = true)
+    public async Task<Result<string>> SendVerifyEmailAsync(SendVerifyEmailRequest req, bool withTxn = true)
     {
         if (withTxn) await _unitOfWork.BeginTransactionAsync();
         try
@@ -621,8 +645,8 @@ public class AuthService : IAuthService
             
             var user = await _userRepository.GetByIdAsync(req.UserId);
             if (user == null)
-                throw new Exception($"User tidak ditemukan");
-            
+                throw new NotFoundException("User tidak ditemukan.");
+
             var existingToken = await _userTokenRepository.ExistByNameAndUserIdAsync("EmailVerification", req.UserId);
             if (existingToken)
             {
@@ -677,7 +701,7 @@ public class AuthService : IAuthService
             }
             
             Logger.Info($"Email verifikasi berhasil dikirim ke user dengan Id '{req.UserId}'.");
-            return rawToken;
+            return Result<string>.Success(rawToken);
         }
         catch (Exception e)
         {
@@ -697,20 +721,20 @@ public class AuthService : IAuthService
             var hashToken = HashToken(token);
             var userToken = await _userTokenRepository.GetByNameAndValueAsync("EmailVerification", hashToken);
             if (userToken == null)
-                return Result<string>.Failure(new List<string> { "Token verifikasi tidak valid." }, "Verifikasi gagal.");
+                throw new ValidationException("Token verifikasi tidak valid.");
             
             var expiryHours = 24;
             if (userToken.CreDate.AddHours(expiryHours) < DateTime.UtcNow)
             {                
                 await _userTokenRepository.DeleteAsync(userToken);
-                return Result<string>.Failure(new List<string> { "Token verifikasi telah kedaluwarsa." }, "Verifikasi gagal.");
+                throw new ValidationException("Token verifikasi telah kedaluwarsa.");
             }
             
             var user = await _userRepository.GetByIdAsync(userToken.UserId);
             if (user == null)
             {
                 await _userTokenRepository.DeleteAsync(userToken);
-                return Result<string>.Failure(new List<string> { "User tidak ditemukan." }, "Verifikasi gagal.");
+                throw new NotFoundException("User tidak ditemukan.");
             }
             
             user.EmailConfirmed = true;
@@ -731,6 +755,58 @@ public class AuthService : IAuthService
         {
             await _unitOfWork.RollbackTransactionAsync();
             Logger.Error("Gagal memverifikasi email.", e);
+            throw;
+        }
+    }
+    #endregion
+    
+    #region UnlockUserAsync
+    public async Task<Result<string>> UnlockUserAsync(UnlockUserRequest request)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var user = await _userRepository.GetByIdAsync(request.UserId);
+            if (user == null)
+            {
+                throw new NotFoundException("User tidak ditemukan.");
+            }
+
+            if (!user.IsLockedOut())
+            {
+                throw new ValidationException("User tidak dalam keadaan terkunci.");
+            }
+
+            user.ResetAccessFailedCount();
+            user.ModDate = request.ModDate;
+            user.ModBy = request.ModBy;
+            user.ModIpAddress = request.ModIpAddress;
+
+            _userRepository.Update(user);
+
+            var securityLog = new UserSecurityLog
+            {
+                UserId = user.Id,
+                Action = UserSecurityActions.AccountUnlocked,
+                Description = $"Akun dibuka secara manual. Alasan: {request.Reason ?? "Tidak ada alasan"}",
+                IpAddress = request.ModIpAddress,
+                CreDate = request.ModDate,
+                CreBy = request.ModBy,
+                CreIpAddress = request.ModIpAddress
+            };
+
+            await _userSecurityLogRepository.AddAsync(securityLog);
+
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+
+            Logger.Info($"User '{user.Username}' berhasil dibuka dari lockout oleh '{request.ModBy}'.");
+            return Result<string>.Success("User berhasil dibuka dari lockout.");
+        }
+        catch (Exception e)
+        {
+            Logger.Error("Gagal membuka lockout user.", e);
+            await _unitOfWork.RollbackTransactionAsync();
             throw;
         }
     }

@@ -87,3 +87,29 @@ public class User : IBaseEntity
     public ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
     public ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();
 }
+
+public static class UserExtensions
+{
+    public static bool IsLockedOut(this User user)
+    {
+        return user.LockoutEnabled && 
+               user.LockoutEnd.HasValue && 
+               user.LockoutEnd.Value > DateTimeOffset.UtcNow;
+    }
+
+    public static void IncrementAccessFailedCount(this User user, int maxAttempts = 5, int lockoutMinutes = 30)
+    {
+        user.AccessFailedCount++;
+        
+        if (user.AccessFailedCount >= maxAttempts)
+        {
+            user.LockoutEnd = DateTimeOffset.UtcNow.AddMinutes(lockoutMinutes);
+        }
+    }
+
+    public static void ResetAccessFailedCount(this User user)
+    {
+        user.AccessFailedCount = 0;
+        user.LockoutEnd = null;
+    }
+}

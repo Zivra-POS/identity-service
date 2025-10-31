@@ -27,12 +27,12 @@ public class UserBranchController : ControllerBase
         if (_currentUserService.StoreId == null)
             return Unauthorized("Store information is required");
 
-        var result = await _userBranchService.GetAllAsync(query, _currentUserService.StoreId.Value);
+        var r = await _userBranchService.GetAllAsync(query, _currentUserService.StoreId.Value);
         
-        if (!result.IsSuccess)
-            return BadRequest(result);
+        if (!r.IsSuccess)
+            return StatusCode((int)r.StatusCode, r);
 
-        return Ok(result);
+        return Ok(r);
     }
     #endregion
 
@@ -40,12 +40,12 @@ public class UserBranchController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var result = await _userBranchService.GetByIdAsync(id);
+        var r = await _userBranchService.GetByIdAsync(id);
         
-        if (!result.IsSuccess)
-            return NotFound(result);
+        if (!r.IsSuccess)
+            return StatusCode((int)r.StatusCode, r);
 
-        return Ok(result);
+        return Ok(r);
     }
     #endregion
 
@@ -53,12 +53,11 @@ public class UserBranchController : ControllerBase
     [HttpGet("user/{userId}")]
     public async Task<IActionResult> GetByUserId(Guid userId)
     {
-        var result = await _userBranchService.GetByUserIdAsync(userId);
+        var r = await _userBranchService.GetByUserIdAsync(userId);
         
-        if (!result.IsSuccess)
-            return BadRequest(result);
+        if (!r.IsSuccess) return StatusCode((int)r.StatusCode, r);
 
-        return Ok(result);
+        return Ok(r);
     }
     #endregion
 
@@ -66,12 +65,12 @@ public class UserBranchController : ControllerBase
     [HttpGet("branch/{branchId}")]
     public async Task<IActionResult> GetByBranchId(Guid branchId)
     {
-        var result = await _userBranchService.GetByBranchIdAsync(branchId);
+        var r = await _userBranchService.GetByBranchIdAsync(branchId);
         
-        if (!result.IsSuccess)
-            return BadRequest(result);
+        if (!r.IsSuccess)
+            return StatusCode((int)r.StatusCode, r);
 
-        return Ok(result);
+        return Ok(r);
     }
     #endregion
 
@@ -79,15 +78,12 @@ public class UserBranchController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] UserBranchRequest request)
     {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var result = await _userBranchService.CreateAsync(request);
+        var r = await _userBranchService.CreateAsync(request);
         
-        if (!result.IsSuccess)
-            return BadRequest(result);
+        if (!r.IsSuccess)
+            return StatusCode((int)r.StatusCode, r);
 
-        return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result);
+        return CreatedAtAction(nameof(GetById), new { id = r.Data!.Id }, r);
     }
     #endregion
 
@@ -95,28 +91,12 @@ public class UserBranchController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var result = await _userBranchService.DeleteAsync(id);
+        var r = await _userBranchService.DeleteAsync(id);
         
-        if (!result.IsSuccess)
-            return BadRequest(result);
+        if (!r.IsSuccess)
+            return StatusCode((int)r.StatusCode, r);
 
-        return Ok(result);
-    }
-    #endregion
-
-    #region GetRowsForLookup
-    [HttpGet("lookup")]
-    public async Task<IActionResult> GetRowsForLookup()
-    {
-        if (_currentUserService.StoreId == null)
-            return Unauthorized("Store information is required");
-
-        var result = await _userBranchService.GetRowsForLookupAsync(_currentUserService.StoreId.Value);
-        
-        if (!result.IsSuccess)
-            return BadRequest(result);
-
-        return Ok(result);
+        return Ok(r);
     }
     #endregion
 }

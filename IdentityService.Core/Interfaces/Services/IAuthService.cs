@@ -16,6 +16,7 @@ public interface IAuthService
     Task<Result<string>> ResetPasswordAsync(ResetPasswordRequest request);
     Task<Result<UpdateUserResponse>> UpdateUserAsync(UpdateUserRequest req);
     Task<Result<RegisterStaffResponse>> RegisterStaffAsync(RegisterStaffRequest req);
-    Task<string> SendVerifyEmailAsync(SendVerifyEmailRequest req, bool withTxn = true);
+    Task<Result<string>> SendVerifyEmailAsync(SendVerifyEmailRequest req, bool withTxn = true);
     Task<Result<string>> VerifyEmailAsync(string token);
+    Task<Result<string>> UnlockUserAsync(UnlockUserRequest request);
 }

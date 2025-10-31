@@ -1,5 +1,5 @@
-using System.Net;
 using IdentityService.Core.Entities;
+using IdentityService.Core.Exceptions;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.Store;
@@ -44,7 +44,8 @@ public class StoreService : IStoreService
     public async Task<Result<StoreResponse>> GetByIdAsync(Guid id)
     {
         var store = await _storeRepo.GetByIdAsync(id);
-        if (store == null) return Result<StoreResponse>.Failure(["Toko tidak ditemukan."], "Not found", HttpStatusCode.NotFound);
+        if (store == null) 
+            throw new NotFoundException("Toko tidak ditemukan.");
         return Result<StoreResponse>.Success(StoreMapper.ToResponse(store));
     }
     #endregion
@@ -57,10 +58,10 @@ public class StoreService : IStoreService
         {
             var user = await _userRepo.GetUserWithRolesAsync(req.UserId);
             if (user == null)
-                return Result<StoreResponse>.Failure(["User tidak ditemukan."], "Validation failed");
+                throw new NotFoundException("User tidak ditemukan.");
             
             if (user.RoleNames.All(ur => ur is not "OWNER"))
-                return Result<StoreResponse>.Failure(["Hanya owner yang dapat membuat toko."], "Validation failed");
+                throw new ForbiddenException("Hanya owner yang dapat membuat toko.");
             
             var lastCode = await _storeRepo.GetLastCodeAsync();
             lastCode = string.IsNullOrEmpty(lastCode) ? "0000000000000000" : (long.Parse(lastCode) + 1).ToString("D16");
@@ -123,56 +124,42 @@ public class StoreService : IStoreService
     #region UpdateAsync
     public async Task<Result<StoreResponse>> UpdateAsync(StoreRequest req)
     {
-        try
-        {
-            var store = await _storeRepo.GetByIdAsync(req.Id!.Value);
-            if (store == null)
-                return Result<StoreResponse>.Failure(["Toko tidak ditemukan."], "Not found", HttpStatusCode.NotFound);
+        var store = await _storeRepo.GetByIdAsync(req.Id!.Value);
+        if (store == null)
+            throw new NotFoundException("Toko tidak ditemukan.");
 
-            store.Name = req.Name;
-            store.Address = req.Address;
-            store.Province = req.Province;
-            store.City = req.City;
-            store.District = req.District;
-            store.Rt = req.Rt;
-            store.Rw = req.Rw;
-            store.Phone = req.Phone;
-            store.IsActive = req.IsActive;
-            store.CostingMethod = req.CostingMethod;
-            store.ModDate = DateTime.UtcNow;
+        store.Name = req.Name;
+        store.Address = req.Address;
+        store.Province = req.Province;
+        store.City = req.City;
+        store.District = req.District;
+        store.Rt = req.Rt;
+        store.Rw = req.Rw;
+        store.Phone = req.Phone;
+        store.IsActive = req.IsActive;
+        store.CostingMethod = req.CostingMethod;
+        store.ModDate = DateTime.UtcNow;
 
-            _storeRepo.Update(store);
-            await _unitOfWork.SaveChangesAsync();
+        _storeRepo.Update(store);
+        await _unitOfWork.SaveChangesAsync();
 
-            return Result<StoreResponse>.Success(StoreMapper.ToResponse(store));
-        }
-        catch (Exception e)
-        {
-            Logger.Error("Gagal memperbarui toko", e);
-            throw;
-        }
+        Logger.Info("Toko berhasil diperbarui dengan Id: " + store.Id);
+        return Result<StoreResponse>.Success(StoreMapper.ToResponse(store));
     }
     #endregion
 
     #region DeleteAsync
     public async Task<Result<string>> DeleteAsync(Guid id)
     {
-        try
-        {
-            var store = await _storeRepo.GetByIdAsync(id);
-            if (store == null)
-                return Result<string>.Failure(["Toko tidak ditemukan."], "Not found", HttpStatusCode.NotFound);
+        var store = await _storeRepo.GetByIdAsync(id);
+        if (store == null)
+            throw new NotFoundException("Toko tidak ditemukan.");
 
-            _storeRepo.Delete(store);
-            await _unitOfWork.SaveChangesAsync();
+        _storeRepo.Delete(store);
+        await _unitOfWork.SaveChangesAsync();
 
-            return Result<string>.Success("Berhasil dihapus");
-        }
-        catch (Exception e)
-        {
-            Logger.Error("Gagal menghapus toko", e);
-            throw;
-        }
+        Logger.Info("Toko berhasil dihapus dengan Id: " + id);
+        return Result<string>.Success("Berhasil dihapus");
     }
     #endregion
 }

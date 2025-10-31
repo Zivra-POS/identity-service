@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using IdentityService.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -37,24 +36,25 @@ public static class AuthenticationExtension
             {
                 OnMessageReceived = context =>
                 {
-                    if (context.Request.Cookies.TryGetValue("access_token", out var token))
+                    var token = GetTokenFromRequest(context.Request);
+                    if (!string.IsNullOrEmpty(token))
                         context.Token = token;
 
                     return Task.CompletedTask;
                 },
                 OnTokenValidated = async context =>
                 {
-                    context.Request.Cookies.TryGetValue("access_token", out var cookieToken);
+                    var token = GetTokenFromRequest(context.Request);
                     
                     var db = context.HttpContext.RequestServices.GetRequiredService<IdentityDbContext>();
 
-                    if (context.SecurityToken is not JsonWebToken jwtToken)
+                    if (context.SecurityToken is not JsonWebToken)
                     {
                         context.Fail("Token tidak valid.");
                         return;
                     }
 
-                    var tokenRecord = await db.AccessTokens.FirstOrDefaultAsync(t => t.Token == cookieToken);
+                    var tokenRecord = await db.AccessTokens.FirstOrDefaultAsync(t => t.Token == token);
 
                     if (tokenRecord is not { Revoked: null })
                     {
@@ -71,5 +71,23 @@ public static class AuthenticationExtension
         });
 
         return services;
+    }
+
+    private static string? GetTokenFromRequest(HttpRequest request)
+    {
+        // First try to get from Authorization header
+        var authorization = request.Headers["Authorization"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(authorization) && authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            return authorization.Substring("Bearer ".Length).Trim();
+        }
+
+        // Then try to get from cookie
+        if (request.Cookies.TryGetValue("access_token", out var cookieToken))
+        {
+            return cookieToken;
+        }
+
+        return null;
     }
 }

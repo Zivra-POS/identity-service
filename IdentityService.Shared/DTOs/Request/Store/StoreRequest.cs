@@ -5,7 +5,7 @@ namespace IdentityService.Shared.DTOs.Request.Store;
 public class StoreRequest
 {
     public Guid? Id { get; set; }
-    public Guid? UserId { get; set; }
+    public Guid? UserId { get; set; } = default;
     public string Name { get; set; } = default!;
     public string? Address { get; set; }
     public string? Province { get; set; }

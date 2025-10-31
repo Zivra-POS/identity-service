@@ -1,4 +1,5 @@
 using IdentityService.Core.Entities;
+using IdentityService.Core.Exceptions;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.Branch;
@@ -34,7 +35,8 @@ public class BranchService : IBranchService
     public async Task<Result<BranchResponse>> GetByIdAsync(Guid id)
     {
         var b = await _branchRepo.GetByIdAsync(id);
-        if (b == null) return Result<BranchResponse>.Failure(new List<string>{"Branch tidak ditemukan."}, "Not found");
+        if (b == null) 
+            throw new NotFoundException("Branch tidak ditemukan.");
         return Result<BranchResponse>.Success(BranchMapper.ToResponse(b));
     }
     #endregion
@@ -43,7 +45,7 @@ public class BranchService : IBranchService
     public async Task<Result<BranchResponse>> CreateAsync(BranchRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Name))
-            return Result<BranchResponse>.Failure(new List<string>{"Name is required."}, "Validation failed");
+            throw new ValidationException("Name is required.");
 
         var branch = new Branch
         {
@@ -75,10 +77,11 @@ public class BranchService : IBranchService
     public async Task<Result<BranchResponse>> UpdateAsync(BranchRequest req)
     {
         if (req.Id == null || req.Id == Guid.Empty)
-            return Result<BranchResponse>.Failure(new List<string>{"Id is required."}, "Validation failed");
+            throw new ValidationException("Id is required.");
 
         var b = await _branchRepo.GetByIdAsync(req.Id.Value);
-        if (b == null) return Result<BranchResponse>.Failure(new List<string>{"Branch tidak ditemukan."}, "Not found");
+        if (b == null) 
+            throw new NotFoundException("Branch tidak ditemukan.");
 
         b.Name = req.Name;
         b.Code = req.Code;
@@ -102,7 +105,8 @@ public class BranchService : IBranchService
     public async Task<Result<string>> DeleteAsync(Guid id)
     {
         var b = await _branchRepo.GetByIdAsync(id);
-        if (b == null) return Result<string>.Failure(new List<string>{"Branch tidak ditemukan."}, "Not found");
+        if (b == null) 
+            throw new NotFoundException("Branch tidak ditemukan.");
 
         _branchRepo.Delete(b);
         await _unitOfWork.SaveChangesAsync();
@@ -111,4 +115,3 @@ public class BranchService : IBranchService
     }
     #endregion
 }
-

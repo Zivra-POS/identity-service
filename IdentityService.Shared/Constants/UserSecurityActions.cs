@@ -27,4 +27,5 @@ public static class UserSecurityActions
     public const string SessionTerminated = "Sesi Dihentikan";
     public const string IpBlocked = "IP Diblokir";
     public const string SuspiciousActivityDetected = "Aktivitas Mencurigakan Terdeteksi";
+    public const string AccountUnlocked = "Akun Dibuka Kuncinya";
 }

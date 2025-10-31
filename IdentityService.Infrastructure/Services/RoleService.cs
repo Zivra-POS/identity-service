@@ -1,4 +1,5 @@
 using IdentityService.Core.Entities;
+using IdentityService.Core.Exceptions;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.Role;
@@ -36,7 +37,8 @@ public class RoleService : IRoleService
     public async Task<Result<RoleResponse>> GetByIdAsync(Guid id)
     {
         var r = await _roleRepo.GetByIdAsync(id);
-        if (r == null) return Result<RoleResponse>.Failure(new List<string>{"Role tidak ditemukan."}, "Not found");
+        if (r == null) 
+            throw new NotFoundException("Role tidak ditemukan.");
         return Result<RoleResponse>.Success(RoleMapper.ToResponse(r));
     }
     #endregion
@@ -45,11 +47,11 @@ public class RoleService : IRoleService
     public async Task<Result<RoleResponse>> CreateAsync(RoleRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Name))
-            return Result<RoleResponse>.Failure(new List<string>{"Name is required."}, "Validation failed");
+            throw new ValidationException("Nama role harus diisi.");
 
         var existing = await _roleRepo.GetByNameAsync(req.Name.ToUpperInvariant());
         if (existing != null)
-            return Result<RoleResponse>.Failure(new List<string>{"Role name already exists."}, "Validation failed");
+            throw new ValidationException("Nama Role sudah ada.");
 
         var role = new Role
         {
@@ -73,16 +75,17 @@ public class RoleService : IRoleService
     public async Task<Result<RoleResponse>> UpdateAsync(RoleRequest req)
     {
         if (req.Id == null || req.Id == Guid.Empty)
-            return Result<RoleResponse>.Failure(new List<string>{"Id is required."}, "Validation failed");
+            throw new ValidationException("Role Id wajib diisi.");
 
         var r = await _roleRepo.GetByIdAsync(req.Id.Value);
-        if (r == null) return Result<RoleResponse>.Failure(new List<string>{"Role tidak ditemukan."}, "Not found");
+        if (r == null) 
+            throw new NotFoundException("Role tidak ditemukan.");
 
         if (!string.Equals(r.Name, req.Name, StringComparison.OrdinalIgnoreCase))
         {
             var exists = await _roleRepo.GetByNameAsync(req.Name.ToUpperInvariant());
             if (exists != null && exists.Id != r.Id)
-                return Result<RoleResponse>.Failure(new List<string>{"Role name already exists."}, "Validation failed");
+                throw new ValidationException("Role name already exists.");
         }
 
         r.Name = req.Name;
@@ -101,7 +104,8 @@ public class RoleService : IRoleService
     public async Task<Result<string>> DeleteAsync(Guid id)
     {
         var r = await _roleRepo.GetByIdAsync(id);
-        if (r == null) return Result<string>.Failure(new List<string>{"Role tidak ditemukan."}, "Not found");
+        if (r == null) 
+            throw new NotFoundException("Role tidak ditemukan.");
 
         _roleRepo.Delete(r);
         await _unitOfWork.SaveChangesAsync();

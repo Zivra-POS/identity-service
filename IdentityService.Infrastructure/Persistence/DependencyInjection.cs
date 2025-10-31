@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Infrastructure.Repositories;
+using IdentityService.Infrastructure.Seeder;
 using IdentityService.Infrastructure.Services;
 using ZivraFramework.EFCore.Extentions;
 
@@ -50,7 +51,12 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
 
-
+        using (var scope = services.BuildServiceProvider().CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+            RoleSeeder.SeedAsync(db).GetAwaiter().GetResult();
+        }
+        
         return services;
     }
 }

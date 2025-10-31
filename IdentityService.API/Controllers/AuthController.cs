@@ -3,7 +3,6 @@ using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.Auth;
 using IdentityService.Shared.DTOs.Request.Auth;
 using IdentityService.Shared.DTOs.Request.User;
-using IdentityService.Shared.Response;
 using Microsoft.AspNetCore.Authorization;
 
 namespace IdentityService.API.Controllers;
@@ -191,7 +190,7 @@ public class AuthController : ControllerBase
     {
         var r = await _authService.SendVerifyEmailAsync(req);
         
-        return Ok(Result<string>.Success(r));
+        return StatusCode((int)r.StatusCode, r);
     }
     #endregion
     
@@ -205,6 +204,16 @@ public class AuthController : ControllerBase
     }
     #endregion
     
+    #region UnlockUser
+    [HttpPost("unlock-user")]
+    [Authorize]
+    public async Task<IActionResult> UnlockUser([FromBody] UnlockUserRequest req)
+    {
+        var r = await _authService.UnlockUserAsync(req);
+        return StatusCode((int)r.StatusCode, r);
+    }
+    #endregion
+
     #region Me
     [HttpGet("me")]
     [Authorize]
@@ -216,7 +225,8 @@ public class AuthController : ControllerBase
             _currentUser.Username,
             _currentUser.FullName,
             _currentUser.Email,
-            _currentUser.Roles
+            _currentUser.Roles,
+            _currentUser.StoreId
         });
     }
     #endregion

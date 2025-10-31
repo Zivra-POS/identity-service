@@ -1,0 +1,490 @@
+{
+  "info": {
+    "name": "IdentityService",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "7d2bb4b3-3b1a-4a3f-9e1a-identity-service"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "{{baseUrl}}", "type": "string" },
+    { "key": "access_token", "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "storeId", "value": "", "type": "string" },
+    { "key": "roleId", "value": "", "type": "string" },
+    { "key": "username", "value": "", "type": "string" },
+    { "key": "password", "value": "Admin@123", "type": "string" },
+    { "key": "email", "value": "", "type": "string" },
+    { "key": "fullName", "value": "", "type": "string" },
+    { "key": "staffUsername", "value": "", "type": "string" },
+    { "key": "staffEmail", "value": "", "type": "string" },
+    { "key": "storeName", "value": "", "type": "string" },
+    { "key": "branchName", "value": "", "type": "string" },
+    { "key": "branchCode", "value": "", "type": "string" },
+    { "key": "roleName", "value": "", "type": "string" },
+    { "key": "autoRandomize", "value": "true", "type": "string" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Attach Authorization and Cookie automatically if tokens exist",
+          "const access = pm.environment.get('access_token') || pm.collectionVariables.get('access_token');",
+          "const refresh = pm.environment.get('refresh_token') || pm.collectionVariables.get('refresh_token');",
+          "if (access) { pm.request.headers.upsert({ key: 'Authorization', value: `Bearer ${access}` }); }",
+          "if (access || refresh) {",
+          "  const parts = [];",
+          "  if (access) parts.push(`access_token=${access}`);",
+          "  if (refresh) parts.push(`refresh_token=${refresh}`);",
+          "  pm.request.headers.upsert({ key: 'Cookie', value: parts.join('; ') });",
+          "}",
+          "",
+          "// Auto-randomize unique inputs to allow repeated runs",
+          "const auto = (pm.environment.get('autoRandomize') || pm.collectionVariables.get('autoRandomize') || 'true').toString().toLowerCase() === 'true';",
+          "let suffix = pm.environment.get('uniqueSuffix') || pm.collectionVariables.get('uniqueSuffix');",
+          "if (!suffix) { suffix = `${Date.now()}_${Math.floor(Math.random()*10000)}`; pm.environment.set('uniqueSuffix', suffix); pm.collectionVariables.set('uniqueSuffix', suffix); }",
+          "if (auto) {",
+          "  const uname = `USER_TEST_${suffix}`;",
+          "  const email = `user_${suffix}@example.com`;",
+          "  const fname = `User ${suffix}`;",
+          "  const sname = `Store ${suffix}`;",
+          "  const bname = `Branch ${suffix}`;",
+          "  const bcode = `BR_${suffix}`;",
+          "  const staffU = `STAFF_${suffix}`;",
+          "  const staffE = `staff_${suffix}@example.com`;",
+          "  const rname = `ROLE_${suffix}`;",
+          "  pm.environment.set('username', uname); pm.collectionVariables.set('username', uname);",
+          "  pm.environment.set('email', email); pm.collectionVariables.set('email', email);",
+          "  pm.environment.set('fullName', fname); pm.collectionVariables.set('fullName', fname);",
+          "  pm.environment.set('storeName', sname); pm.collectionVariables.set('storeName', sname);",
+          "  pm.environment.set('branchName', bname); pm.collectionVariables.set('branchName', bname);",
+          "  pm.environment.set('branchCode', bcode); pm.collectionVariables.set('branchCode', bcode);",
+          "  pm.environment.set('staffUsername', staffU); pm.collectionVariables.set('staffUsername', staffU);",
+          "  pm.environment.set('staffEmail', staffE); pm.collectionVariables.set('staffEmail', staffE);",
+          "  pm.environment.set('roleName', rname); pm.collectionVariables.set('roleName', rname);",
+          "}"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// No-op at collection level"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "description": "Request\n```json\n{\n  \"fullName\": \"string (required)\",\n  \"username\": \"string\",\n  \"email\": \"string\",\n  \"password\": \"string\",\n  \"roleIDs\": [\"guid\"] ,\n  \"address\": \"string\",\n  \"province\": \"string\",\n  \"city\": \"string\",\n  \"district\": \"string\",\n  \"rt\": \"string\",\n  \"rw\": \"string\"\n}\n```\n\nResponse (Result<AuthResponse>)\n```json\n{\n  \"isSuccess\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": \"guid\",\n    \"fullName\": \"string\",\n    \"username\": \"string\",\n    \"email\": \"string\",\n    \"roles\": [\"string\"],\n    \"token\": \"jwt\",\n    \"refreshToken\": \"string\"\n  },\n  \"errors\": null,\n  \"statusCode\": 201\n}\n```",
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullName\": \"{{fullName}}\",\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"address\": \"Jl. Contoh {{uniqueSuffix}}\",\n  \"province\": \"DKI Jakarta\",\n  \"city\": \"Jakarta\",\n  \"district\": \"Menteng\",\n  \"rt\": \"01\",\n  \"rw\": \"02\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Register success', function () { pm.expect(pm.response.code).to.be.oneOf([201, 200]); });",
+                  "// capture userId if present in response data",
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const id = (json && json.data && (json.data.id || (json.data.user && json.data.user.id))) || json.id;",
+                  "  if (id) pm.environment.set('userId', id);",
+                  "} catch(e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "description": "Request\n```json\n{\n  \"username\": \"string\",\n  \"password\": \"string\"\n}\n```\n\nResponse (Result<AuthResponse>)\n```json\n{\n  \"isSuccess\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": \"guid\",\n    \"fullName\": \"string\",\n    \"username\": \"string\",\n    \"email\": \"string\",\n    \"roles\": [\"string\"],\n    \"token\": \"jwt\",\n    \"refreshToken\": \"string\"\n  },\n  \"errors\": null,\n  \"statusCode\": 200\n}\n```\n\nCatatan: Cookie `access_token` & `refresh_token` juga dikirim oleh server.",
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login success', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "const json = pm.response.json();",
+                  "const data = json && (json.data || json);",
+                  "if (data) {",
+                  "  if (data.token) pm.environment.set('access_token', data.token);",
+                  "  if (data.refreshToken) pm.environment.set('refresh_token', data.refreshToken);",
+                  "  if (data.id) pm.environment.set('userId', data.id);",
+                  "  if (data.userId) pm.environment.set('userId', data.userId);",
+                  "}",
+                  "// also pick from Set-Cookie if provided",
+                  "const setCookies = pm.response.headers.get('Set-Cookie');",
+                  "if (setCookies) {",
+                  "  (setCookies.split(',') || []).forEach(c => {",
+                  "    if (c.includes('access_token=')) { const v = c.split('access_token=')[1].split(';')[0]; pm.environment.set('access_token', v); }",
+                  "    if (c.includes('refresh_token=')) { const v = c.split('refresh_token=')[1].split(';')[0]; pm.environment.set('refresh_token', v); }",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "description": "Response\n```json\n{\n  \"id\": \"guid\",\n  \"username\": \"string\",\n  \"fullName\": \"string\",\n  \"email\": \"string\",\n  \"roles\": [\"string\"],\n  \"storeId\": \"guid|null\"\n}\n```",
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Me success', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "try { const me = pm.response.json(); if (me && me.id) { pm.environment.set('userId', me.id); } if (me && me.storeId) { pm.environment.set('storeId', me.storeId); } } catch(e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api","auth","refresh"] }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Ensure refresh cookie header present",
+                  "const refresh = pm.environment.get('refresh_token');",
+                  "if (refresh) { pm.request.headers.upsert({ key: 'Cookie', value: `refresh_token=${refresh}` }); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Refresh success', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "try { const resp = pm.response.json(); if (resp && resp.token) pm.environment.set('access_token', resp.token); if (resp && resp.refreshToken) pm.environment.set('refresh_token', resp.refreshToken); } catch(e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","auth","logout"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logout', function () { pm.expect(pm.response.code).to.be.oneOf([200]); });",
+                  "pm.environment.unset('access_token'); pm.environment.unset('refresh_token');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/forgot", "host": ["{{baseUrl}}"], "path": ["api","auth","forgot"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{email}}\",\n  \"origin\": \"http://localhost:3000\"\n}" }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/reset", "host": ["{{baseUrl}}"], "path": ["api","auth","reset"] },
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"{{password_reset_token}}\",\n  \"newPassword\": \"NewPass@123\"\n}" }
+          }
+        },
+        {
+          "name": "Send Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/send-verify-email", "host": ["{{baseUrl}}"], "path": ["api","auth","send-verify-email"] },
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"fullName\": \"{{fullName}}\",\n  \"email\": \"{{email}}\",\n  \"username\": \"{{username}}\",\n  \"isSend\": true\n}" }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-email?token={{email_verification_token}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","auth","verify-email"],
+              "query": [ { "key": "token", "value": "{{email_verification_token}}" } ]
+            }
+          }
+        },
+        {
+          "name": "Update User (multipart/form-data)",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "multipart/form-data" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth", "host": ["{{baseUrl}}"], "path": ["api","auth"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "id", "value": "{{userId}}", "type": "text" },
+                { "key": "fullName", "value": "{{fullName}}", "type": "text" },
+                { "key": "displayName", "value": "", "type": "text" },
+                { "key": "phoneNumber", "value": "", "type": "text" },
+                { "key": "isActive", "value": "true", "type": "text" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Register Staff (multipart/form-data)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "multipart/form-data" } ],
+            "url": { "raw": "{{baseUrl}}/api/auth/register-staff", "host": ["{{baseUrl}}"], "path": ["api","auth","register-staff"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "storeId", "value": "{{storeId}}", "type": "text" },
+                { "key": "ownerId", "value": "{{userId}}", "type": "text" },
+                { "key": "fullName", "value": "Staff {{uniqueSuffix}}", "type": "text" },
+                { "key": "username", "value": "{{staffUsername}}", "type": "text" },
+                { "key": "email", "value": "{{staffEmail}}", "type": "text" },
+                { "key": "password", "value": "Staff@123", "type": "text" },
+                { "key": "isActive", "value": "true", "type": "text" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stores",
+      "item": [
+        {
+          "name": "Create Store",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "description": "Request (StoreRequest)\n```json\n{\n  \"name\": \"string (required)\",\n  \"address\": \"string\",\n  \"province\": \"string\",\n  \"city\": \"string\",\n  \"district\": \"string\",\n  \"rt\": \"string\",\n  \"rw\": \"string\",\n  \"phone\": \"string\",\n  \"isActive\": true,\n  \"costingMethod\": \"FIFO|LIFO|AVERAGE\"\n}\n```\n\nResponse (Result<StoreResponse>)\n```json\n{\n  \"isSuccess\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": \"guid\",\n    \"name\": \"string\",\n    \"address\": \"string\",\n    \"province\": \"string\",\n    \"city\": \"string\",\n    \"district\": \"string\",\n    \"rt\": \"string\",\n    \"rw\": \"string\",\n    \"phone\": \"string\",\n    \"isActive\": true\n  },\n  \"errors\": null,\n  \"statusCode\": 201\n}\n```",
+            "url": { "raw": "{{baseUrl}}/api/stores", "host": ["{{baseUrl}}"], "path": ["api","stores"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{storeName}}\",\n  \"address\": \"Jl. Sudirman {{uniqueSuffix}}\",\n  \"province\": \"DKI Jakarta\",\n  \"city\": \"Jakarta\",\n  \"district\": \"Setiabudi\",\n  \"rt\": \"01\",\n  \"rw\": \"02\",\n  \"phone\": \"0812{{uniqueSuffix}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Create Store', function () { pm.expect(pm.response.code).to.be.oneOf([201, 200]); });",
+                  "try { const json = pm.response.json(); if (json && json.data && json.data.id) pm.environment.set('storeId', json.data.id); } catch(e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Stores",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/stores", "host": ["{{baseUrl}}"], "path": ["api","stores"] } }
+        },
+        {
+          "name": "Get Store By Id",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/stores/{{storeId}}", "host": ["{{baseUrl}}"], "path": ["api","stores","{{storeId}}"] } }
+        },
+        {
+          "name": "Update Store",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/stores", "host": ["{{baseUrl}}"], "path": ["api","stores"] },
+            "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{storeId}}\",\n  \"name\": \"Main Store Updated\"\n}" }
+          }
+        },
+        {
+          "name": "Delete Store",
+          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/stores/{{storeId}}", "host": ["{{baseUrl}}"], "path": ["api","stores","{{storeId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Roles",
+      "item": [
+        {
+          "name": "Create Role",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/roles", "host": ["{{baseUrl}}"], "path": ["api","roles"] },
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"{{roleName}}\",\n  \"description\": \"Auto role {{uniqueSuffix}}\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "try { const json = pm.response.json(); if (json && json.data && json.data.id) pm.environment.set('roleId', json.data.id); } catch(e) {}"
+                ]
+              }
+            }
+          ]
+        },
+        { "name": "Get Roles", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/roles", "host": ["{{baseUrl}}"], "path": ["api","roles"] } } },
+        { "name": "Get Role By Id", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}"] } } },
+        { "name": "Update Role", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/api/roles", "host": ["{{baseUrl}}"], "path": ["api","roles"] }, "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{roleId}}\",\n  \"name\": \"Admin Updated\"\n}" } } },
+        { "name": "Delete Role", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}"] } } }
+      ]
+    },
+    {
+      "name": "Role Claims",
+      "item": [
+        {
+          "name": "Create Role Claim",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/role-claims", "host": ["{{baseUrl}}"], "path": ["api","role-claims"] },
+            "body": { "mode": "raw", "raw": "{\n  \"roleId\": \"{{roleId}}\",\n  \"claimType\": \"permission\",\n  \"claimValue\": \"stores:read\"\n}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": [ "pm.environment.set('roleClaimId', (pm.response.json().data||{}).id||'');" ] }
+            }
+          ]
+        },
+        { "name": "Get Role Claims By Role", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/role-claims/role/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","role-claims","role","{{roleId}}"] } } },
+        { "name": "Get Role Claim By Id", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/role-claims/{{roleClaimId}}", "host": ["{{baseUrl}}"], "path": ["api","role-claims","{{roleClaimId}}"] } } },
+        { "name": "Update Role Claim", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/api/role-claims", "host": ["{{baseUrl}}"], "path": ["api","role-claims"] }, "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{roleClaimId}}\",\n  \"roleId\": \"{{roleId}}\",\n  \"claimType\": \"permission\",\n  \"claimValue\": \"stores:write\"\n}" } } },
+        { "name": "Delete Role Claim", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/role-claims/{{roleClaimId}}", "host": ["{{baseUrl}}"], "path": ["api","role-claims","{{roleClaimId}}"] } } }
+      ]
+    },
+    {
+      "name": "User Branches",
+      "item": [
+        {
+          "name": "Get All",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user-branches", "host": ["{{baseUrl}}"], "path": ["api","user-branches"] } }
+        },
+        {
+          "name": "Create",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/user-branches", "host": ["{{baseUrl}}"], "path": ["api","user-branches"] },
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"branchId\": \"{{branchId}}\"\n}" }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "try { const r = pm.response.json(); if (r && r.data && r.data.id) pm.environment.set('userBranchId', r.data.id); } catch(e) {}" ] } }
+          ]
+        },
+        { "name": "Get By Id", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user-branches/{{userBranchId}}", "host": ["{{baseUrl}}"], "path": ["api","user-branches","{{userBranchId}}"] } } },
+        { "name": "Delete", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/user-branches/{{userBranchId}}", "host": ["{{baseUrl}}"], "path": ["api","user-branches","{{userBranchId}}"] } } }
+      ]
+    },
+    {
+      "name": "Branches",
+      "item": [
+        {
+          "name": "Create Branch",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "description": "Request (BranchRequest)\n```json\n{\n  \"storeId\": \"guid (required)\",\n  \"name\": \"string (required)\",\n  \"code\": \"string\",\n  \"address\": \"string\",\n  \"province\": \"string\",\n  \"city\": \"string\",\n  \"district\": \"string\",\n  \"rt\": \"string\",\n  \"rw\": \"string\",\n  \"phone\": \"string\"\n}\n```\n\nResponse (Result<BranchResponse>)\n```json\n{\n  \"isSuccess\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": \"guid\",\n    \"storeId\": \"guid\",\n    \"name\": \"string\",\n    \"code\": \"string\",\n    \"address\": \"string\",\n    \"province\": \"string\",\n    \"city\": \"string\",\n    \"district\": \"string\",\n    \"rt\": \"string\",\n    \"rw\": \"string\",\n    \"phone\": \"string\"\n  },\n  \"errors\": null,\n  \"statusCode\": 201\n}\n```",
+            "url": { "raw": "{{baseUrl}}/api/branches", "host": ["{{baseUrl}}"], "path": ["api","branches"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storeId\": \"{{storeId}}\",\n  \"name\": \"{{branchName}}\",\n  \"code\": \"{{branchCode}}\",\n  \"address\": \"Jl. Thamrin {{uniqueSuffix}}\",\n  \"province\": \"DKI Jakarta\",\n  \"city\": \"Jakarta\",\n  \"district\": \"Menteng\",\n  \"rt\": \"01\",\n  \"rw\": \"02\",\n  \"phone\": \"0811{{uniqueSuffix}}\"\n}"
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "try { const j = pm.response.json(); if (j && j.data && j.data.id) pm.environment.set('branchId', j.data.id); } catch(e) {}" ] } }
+          ]
+        },
+        {
+          "name": "Get Branches (by storeId)",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/branches?storeId={{storeId}}", "host": ["{{baseUrl}}"], "path": ["api","branches"], "query": [ { "key": "storeId", "value": "{{storeId}}" } ] } }
+        },
+        { "name": "Get Branch By Id", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/branches/{{branchId}}", "host": ["{{baseUrl}}"], "path": ["api","branches","{{branchId}}"] } } },
+        {
+          "name": "Update Branch",
+          "request": {
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "url": { "raw": "{{baseUrl}}/api/branches", "host": ["{{baseUrl}}"], "path": ["api","branches"] },
+            "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{branchId}}\",\n  \"storeId\": \"{{storeId}}\",\n  \"name\": \"Head Branch Updated\"\n}" }
+          }
+        },
+        { "name": "Delete Branch", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/branches/{{branchId}}", "host": ["{{baseUrl}}"], "path": ["api","branches","{{branchId}}"] } } }
+      ]
+    },
+    {
+      "name": "User Claims",
+      "item": [
+        {
+          "name": "Create User Claim",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "description": "Request (UserClaimRequest)\n```json\n{\n  \"id\": null,\n  \"userId\": \"guid (required)\",\n  \"claimType\": \"string (required)\",\n  \"claimValue\": \"string (required)\"\n}\n```\n\nResponse (Result<UserClaimResponse>)\n```json\n{\n  \"isSuccess\": true,\n  \"message\": \"Success\",\n  \"data\": {\n    \"id\": \"guid\",\n    \"userId\": \"guid\",\n    \"claimType\": \"string\",\n    \"claimValue\": \"string\"\n  },\n  \"errors\": null,\n  \"statusCode\": 201\n}\n```",
+            "url": { "raw": "{{baseUrl}}/api/user-claims", "host": ["{{baseUrl}}"], "path": ["api","user-claims"] },
+            "body": { "mode": "raw", "raw": "{\n  \"id\": null,\n  \"userId\": \"{{userId}}\",\n  \"claimType\": \"permission\",\n  \"claimValue\": \"branches:read\"\n}" }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": [ "try { const j = pm.response.json(); if (j && j.data && j.data.id) pm.environment.set('userClaimId', j.data.id); } catch(e) {}" ] } }
+          ]
+        },
+        { "name": "Get User Claims By User", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user-claims/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","user-claims","user","{{userId}}"] } } },
+        { "name": "Get User Claim By Id", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user-claims/{{userClaimId}}", "host": ["{{baseUrl}}"], "path": ["api","user-claims","{{userClaimId}}"] } } },
+        { "name": "Update User Claim", "request": { "method": "PUT", "header": [ { "key": "Content-Type", "value": "application/json" } ], "url": { "raw": "{{baseUrl}}/api/user-claims", "host": ["{{baseUrl}}"], "path": ["api","user-claims"] }, "body": { "mode": "raw", "raw": "{\n  \"id\": \"{{userClaimId}}\",\n  \"userId\": \"{{userId}}\",\n  \"claimType\": \"permission\",\n  \"claimValue\": \"branches:write\"\n}" } } },
+        { "name": "Delete User Claim", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/user-claims/{{userClaimId}}", "host": ["{{baseUrl}}"], "path": ["api","user-claims","{{userClaimId}}"] } } }
+      ]
+    }
+  ]
+}
+
+

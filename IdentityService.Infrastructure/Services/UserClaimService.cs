@@ -1,4 +1,5 @@
 using IdentityService.Core.Entities;
+using IdentityService.Core.Exceptions;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.User;
@@ -35,7 +36,7 @@ public class UserClaimService : IUserClaimService
     {
         var uc = await _ucRepo.GetByIdAsync(id);
         if (uc == null)
-            return Result<UserClaimResponse>.Failure(new List<string> { "UserClaim tidak ditemukan." }, "Not found");
+            throw new NotFoundException("User Claim tidak ditemukan.");
 
         return Result<UserClaimResponse>.Success(UserClaimMapper.ToResponse(uc));
     }
@@ -45,11 +46,11 @@ public class UserClaimService : IUserClaimService
     public async Task<Result<UserClaimResponse>> CreateAsync(UserClaimRequest req)
     {
         if (req.UserId == Guid.Empty)
-            return Result<UserClaimResponse>.Failure(new List<string> { "User Id wajib diisi." }, "Validation failed");
+            throw new ValidationException("User Id wajib diisi.");
 
         var user = await _userRepo.GetByIdAsync(req.UserId);
         if (user == null)
-            return Result<UserClaimResponse>.Failure(new List<string> { "User tidak ditemukan." }, "Validation failed");
+            throw new NotFoundException("User tidak ditemukan.");
 
         var uc = new UserClaim
         {
@@ -71,11 +72,11 @@ public class UserClaimService : IUserClaimService
     public async Task<Result<UserClaimResponse>> UpdateAsync(UserClaimRequest req)
     {
         if (req.Id == null || req.Id == Guid.Empty)
-            return Result<UserClaimResponse>.Failure(new List<string> { "Id wajib diisi." }, "Validation failed");
+            throw new ValidationException("Id wajib diisi.");
 
         var uc = await _ucRepo.GetByIdAsync(req.Id.Value);
         if (uc == null)
-            return Result<UserClaimResponse>.Failure(new List<string> { "User Claim tidak ditemukan." }, "Not found");
+            throw new NotFoundException("User Claim tidak ditemukan.");
 
         uc.ClaimType = req.ClaimType;
         uc.ClaimValue = req.ClaimValue;
@@ -93,7 +94,7 @@ public class UserClaimService : IUserClaimService
     {
         var uc = await _ucRepo.GetByIdAsync(id);
         if (uc == null)
-            return Result<string>.Failure(new List<string> { "User Claim tidak ditemukan." }, "Not found");
+            throw new NotFoundException("User Claim tidak ditemukan.");
 
         _ucRepo.Delete(uc);
         await _unitOfWork.SaveChangesAsync();

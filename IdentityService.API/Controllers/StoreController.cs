@@ -38,10 +38,10 @@ public class StoreController : ControllerBase
 
     #region Create
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] StoreRequest req)
+    public async Task<IActionResult> Create([FromBody] StoreRequest model)
     {
-        req.UserId = _currentUser.UserId;
-        var r = await _storeService.CreateAsync(req);
+        model.UserId = _currentUser.UserId;
+        var r = await _storeService.CreateAsync(model);
         return StatusCode((int)r.StatusCode, r);
     }
     #endregion

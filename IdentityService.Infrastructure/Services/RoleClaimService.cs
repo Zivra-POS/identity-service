@@ -1,4 +1,5 @@
 using IdentityService.Core.Entities;
+using IdentityService.Core.Exceptions;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.Role;
@@ -36,7 +37,7 @@ public class RoleClaimService : IRoleClaimService
     {
         var rc = await _rcRepo.GetByIdAsync(id);
         if (rc == null)
-            return Result<RoleClaimResponse>.Failure(new List<string> { "RoleClaim tidak ditemukan." }, "Not found");
+            throw new NotFoundException("Role Claim tidak ditemukan.");
 
         return Result<RoleClaimResponse>.Success(RoleClaimMapper.ToResponse(rc));
     }
@@ -46,11 +47,11 @@ public class RoleClaimService : IRoleClaimService
     public async Task<Result<RoleClaimResponse>> CreateAsync(RoleClaimRequest req)
     {
         if (req.RoleId == Guid.Empty)
-            return Result<RoleClaimResponse>.Failure(new List<string> { "RoleId is required." }, "Validation failed");
+            throw new ValidationException("Role Id is required.");
 
         var role = await _roleRepo.GetByIdAsync(req.RoleId);
         if (role == null)
-            return Result<RoleClaimResponse>.Failure(new List<string> { "Role tidak ditemukan." }, "Validation failed");
+            throw new NotFoundException("Role tidak ditemukan.");
 
         var rc = new RoleClaim
         {
@@ -72,11 +73,11 @@ public class RoleClaimService : IRoleClaimService
     public async Task<Result<RoleClaimResponse>> UpdateAsync(RoleClaimRequest req)
     {
         if (req.Id == null || req.Id == Guid.Empty)
-            return Result<RoleClaimResponse>.Failure(new List<string> { "Id is required." }, "Validation failed");
+            throw new ValidationException("Id is required.");
 
         var rc = await _rcRepo.GetByIdAsync(req.Id.Value);
         if (rc == null)
-            return Result<RoleClaimResponse>.Failure(new List<string> { "RoleClaim tidak ditemukan." }, "Not found");
+            throw new NotFoundException("Role Claim tidak ditemukan.");
 
         rc.ClaimType = req.ClaimType;
         rc.ClaimValue = req.ClaimValue;
@@ -94,7 +95,7 @@ public class RoleClaimService : IRoleClaimService
     {
         var rc = await _rcRepo.GetByIdAsync(id);
         if (rc == null)
-            return Result<string>.Failure(new List<string> { "RoleClaim tidak ditemukan." }, "Not found");
+            throw new NotFoundException("Role Claim tidak ditemukan.");
 
         _rcRepo.Delete(rc);
         await _unitOfWork.SaveChangesAsync();
