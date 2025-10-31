@@ -31,6 +31,27 @@ public class AuthController : ControllerBase
         _currentUser = currentUser;
     }
 
+    private string? GetRefreshTokenFromRequest()
+    {
+        // Try to get refresh token from X-Refresh-Token header first
+        if (Request.Headers.TryGetValue("X-Refresh-Token", out var refreshTokenHeader))
+        {
+            var headerToken = refreshTokenHeader.FirstOrDefault();
+            if (!string.IsNullOrEmpty(headerToken))
+            {
+                return headerToken;
+            }
+        }
+
+        // Fallback to cookie
+        if (Request.Cookies.TryGetValue("refresh_token", out var refreshTokenCookie))
+        {
+            return refreshTokenCookie;
+        }
+
+        return null;
+    }
+
     #region Register
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest req)
@@ -103,7 +124,8 @@ public class AuthController : ControllerBase
     [HttpPost("refresh")]
     public async Task<IActionResult> Refresh()
     {
-        if (!Request.Cookies.TryGetValue("refresh_token", out var existingRaw) || string.IsNullOrEmpty(existingRaw))
+        var existingRaw = GetRefreshTokenFromRequest();
+        if (string.IsNullOrEmpty(existingRaw))
             return Unauthorized(new { message = "Refresh token tidak ditemukan." });
 
         var rotated = await _refreshTokenService.RotateRefreshTokenAsync(existingRaw);
@@ -148,15 +170,35 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Logout()
     {
-        var sub = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = (Guid)_currentUser.UserId!;
         
-        if (string.IsNullOrWhiteSpace(sub) || !Guid.TryParse(sub, out var userId))
-            return Unauthorized(new { message = "User tidak terautentikasi." });
+        var refreshToken = GetRefreshTokenFromRequest();
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return BadRequest(new { message = "Refresh token tidak ditemukan." });
 
-        var r = await _authService.LogoutAsync(userId);
+        var r = await _authService.LogoutAsync(userId, refreshToken);
         if (!r.IsSuccess)
             return StatusCode((int)r.StatusCode, r);
         
+        Response.Cookies.Delete("access_token");
+        Response.Cookies.Delete("refresh_token");
+
+        return StatusCode((int)r.StatusCode, r);
+    }
+    #endregion
+
+    #region LogoutAllDevices
+    [HttpPost("logout-all-devices")]
+    [Authorize]
+    public async Task<IActionResult> LogoutAllDevices()
+    {
+        var userId = (Guid)_currentUser.UserId!;
+
+        var r = await _authService.LogoutAllDevicesAsync(userId);
+        if (!r.IsSuccess)
+            return StatusCode((int)r.StatusCode, r);
+        
+        // Hapus cookies untuk device saat ini juga
         Response.Cookies.Delete("access_token");
         Response.Cookies.Delete("refresh_token");
 

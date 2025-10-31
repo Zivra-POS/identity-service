@@ -94,4 +94,19 @@ public class TokenService : ITokenService
         return accessToken;
     }
     #endregion
+
+    #region RevokeJwtTokenAsync
+    public async Task RevokeJwtTokenAsync(Guid accessTokenId)
+    {
+        await _accessTokenRepository.RevokeAsync(accessTokenId);
+        await _unitOfWork.SaveChangesAsync();
+    }
+    #endregion
+
+    #region IsJwtTokenRevokedAsync
+    public async Task<bool> IsJwtTokenRevokedAsync(Guid accessTokenId)
+    {
+        return await _accessTokenRepository.IsRevokedAsync(accessTokenId);
+    }
+    #endregion
 }

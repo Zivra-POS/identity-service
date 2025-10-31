@@ -471,15 +471,21 @@ public class AuthService : IAuthService
     #endregion
 
     #region LogoutAsync
-    public async Task<Result<string>> LogoutAsync(Guid userId)
+    public async Task<Result<string>> LogoutAsync(Guid userId, string refreshToken)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var tokens = await _refreshTokenRepository.GetActiveByUserIdAsync(userId);
-            foreach (var t in tokens)
+            var token = await _refreshTokenRepository.GetByTokenHashAsync(refreshToken);
+            if (token != null && token.UserId == userId && token.Revoked == null)
             {
-                await _refreshTokenService.RevokeRefreshTokenAsync(t.Id);
+                await _refreshTokenService.RevokeRefreshTokenAsync(token.Id);
+                
+                if (token.AccessTokenId != Guid.Empty)
+                {
+                    await _tokenService.RevokeJwtTokenAsync(token.AccessTokenId);
+                    Logger.Info($"JWT token dengan Id '{token.AccessTokenId}' berhasil di-revoke untuk user '{userId}'");
+                }
             }
             
             var securityLog = new UserSecurityLog
@@ -494,12 +500,63 @@ public class AuthService : IAuthService
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
 
-            Logger.Info($"User dengan Id '{userId}' berhasil logout.");
+            Logger.Info($"User dengan Id '{userId}' berhasil logout dari satu device.");
             return Result<string>.Success("Logout berhasil.");
         }
         catch (Exception e)
         {
             Logger.Error("Logout gagal.", e);
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
+    #endregion
+
+    #region LogoutAllDevicesAsync
+    public async Task<Result<string>> LogoutAllDevicesAsync(Guid userId)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var tokens = await _refreshTokenRepository.GetActiveByUserIdAsync(userId);
+            var revokedJwtCount = 0;
+
+            var refreshTokens = tokens.ToList();
+            
+            foreach (var token in refreshTokens)
+            {
+                await _refreshTokenService.RevokeRefreshTokenAsync(token.Id);
+                
+                if (token.AccessTokenId != Guid.Empty)
+                {
+                    await _tokenService.RevokeJwtTokenAsync(token.AccessTokenId);
+                    revokedJwtCount++;
+                }
+            }
+            
+            Logger.Info($"Total {revokedJwtCount} JWT tokens berhasil di-revoke untuk user '{userId}'");
+            
+            var securityLog = new UserSecurityLog
+            {
+                UserId = userId,
+                Action = UserSecurityActions.LogoutAllDevices,
+                Description = "User logout dari semua device",
+                CreBy = "SYSTEM",
+                CreDate = DateTime.UtcNow,
+                CreIpAddress = "0.0.0.0"
+            };
+            
+            await _userSecurityLogRepository.AddAsync(securityLog);
+
+            await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+
+            Logger.Info($"User dengan Id '{userId}' berhasil logout dari semua device. Total token yang di-revoke: {refreshTokens.Count()}");
+            return Result<string>.Success("Logout dari semua device berhasil.");
+        }
+        catch (Exception e)
+        {
+            Logger.Error("Logout dari semua device gagal.", e);
             await _unitOfWork.RollbackTransactionAsync();
             throw;
         }

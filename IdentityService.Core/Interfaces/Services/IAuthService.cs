@@ -11,7 +11,8 @@ public interface IAuthService
 {
     Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request);
     Task<Result<AuthResponse>> LoginAsync(LoginRequest request);
-    Task<Result<string>> LogoutAsync(Guid userId);
+    Task<Result<string>> LogoutAsync(Guid userId, string refreshToken);
+    Task<Result<string>> LogoutAllDevicesAsync(Guid userId);
     Task<Result<ForgotPasswordResponse>> RequestPasswordResetAsync(ForgotPasswordRequest request);
     Task<Result<string>> ResetPasswordAsync(ResetPasswordRequest request);
     Task<Result<UpdateUserResponse>> UpdateUserAsync(UpdateUserRequest req);

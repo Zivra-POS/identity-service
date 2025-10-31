@@ -48,17 +48,47 @@ public class JwtCookieAuthenticationHandler : AuthenticationHandler<JwtBearerOpt
 
     private string? GetTokenFromRequest()
     {
-        // First try to get from Authorization header
+        // First try to get access token from Authorization header
         var authorization = Request.Headers["Authorization"].FirstOrDefault();
         if (!string.IsNullOrEmpty(authorization) && authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
             return authorization.Substring("Bearer ".Length).Trim();
         }
 
-        // Then try to get from cookie
-        if (Request.Cookies.TryGetValue("access_token", out var cookieToken))
+        // Try to get access token from custom header
+        if (Request.Headers.TryGetValue("X-Access-Token", out var accessTokenHeader))
         {
-            return cookieToken;
+            var headerToken = accessTokenHeader.FirstOrDefault();
+            if (!string.IsNullOrEmpty(headerToken))
+            {
+                return headerToken;
+            }
+        }
+
+        // Try to get access token from cookie
+        if (Request.Cookies.TryGetValue("access_token", out var accessTokenCookie))
+        {
+            return accessTokenCookie;
+        }
+
+        // If no access token found, try refresh token from header
+        if (Request.Headers.TryGetValue("X-Refresh-Token", out var refreshTokenHeader))
+        {
+            var headerRefreshToken = refreshTokenHeader.FirstOrDefault();
+            if (!string.IsNullOrEmpty(headerRefreshToken))
+            {
+                // For refresh token, we might need different handling
+                // But for now, we'll return it as is for validation
+                return headerRefreshToken;
+            }
+        }
+
+        // Try to get refresh token from cookie as fallback
+        if (Request.Cookies.TryGetValue("refresh_token", out var refreshTokenCookie))
+        {
+            // For refresh token, we might need different handling
+            // But for now, we'll return it as is for validation
+            return refreshTokenCookie;
         }
 
         return null;

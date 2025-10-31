@@ -5,6 +5,7 @@ public static class UserSecurityActions
     public const string LoginSuccess = "Login Berhasil";
     public const string LoginFailed = "Login Gagal";
     public const string Logout = "Logout";
+    public const string LogoutAllDevices = "Logout Dari Semua Device";
     public const string SendEmailVerification = "Permintaan Verifikasi Email";
     public const string EmailVerified = "Email Terverifikasi";
     public const string PasswordChanged = "Password Diubah";
