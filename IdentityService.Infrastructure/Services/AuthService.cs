@@ -7,7 +7,6 @@ using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Interfaces.Services.Message;
 using IdentityService.Core.Mappers;
-using IdentityService.Core.Mappers.Auth;
 using IdentityService.Shared.Constants;
 using IdentityService.Shared.DTOs.Request.Auth;
 using IdentityService.Shared.DTOs.Request.User;
@@ -68,6 +67,28 @@ public class AuthService : IAuthService
         _emailVerificationEvent = emailVerificationEvent;
         _configuration = configuration;
     }
+    
+    #region GetUserByIdAsync
+    public async Task<User> GetUserByIdAsync(Guid userId)
+    {
+        try
+        {
+            var user = await _userRepository.GetByIdWithRolesAsync(userId);
+            if (user == null)
+            {
+                Logger.Error($"User dengan Id '{userId}' tidak ditemukan.");
+                throw new NotFoundException("User tidak ditemukan.");
+            }
+
+            return user;
+        }
+        catch (Exception e)
+        {
+            Logger.Error("Gagal mengambil data user.", e);
+            throw;
+        }
+    }
+    #endregion
 
     #region RegisterAsync
     public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest req)
@@ -157,8 +178,6 @@ public class AuthService : IAuthService
                 .Select(rn => rn!)
                 .ToArray();
             
-            var resp = AuthMapper.ToAuthResponse(user, roleNames, null, null);
-            
             var verifyToken = await SendVerifyEmailAsync(new SendVerifyEmailRequest
             {
                 UserId = user.Id,
@@ -183,6 +202,8 @@ public class AuthService : IAuthService
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
             
+            var resp = AuthMapper.ToAuthResponse(user, roleNames, null, null, verifyToken.Data);
+            
             Logger.Info($"User {user.Username} telah berhasil dibuat.");
             return Result<AuthResponse>.Success(resp);
         }
@@ -201,7 +222,12 @@ public class AuthService : IAuthService
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            List<string> errors = [];
+            if (req.CreDate.Kind == DateTimeKind.Local)
+                req.CreDate = req.CreDate.ToUniversalTime();
+            else if (req.CreDate.Kind == DateTimeKind.Unspecified)
+                req.CreDate = DateTime.SpecifyKind(req.CreDate, DateTimeKind.Utc);
+
+            List<string> errors = new();
             if (await _userRepository.ExistsUsernameAsync(req.Username))
             {
                 Logger.Error($"Username '{req.Username}' telah digunakan.");
@@ -348,7 +374,7 @@ public class AuthService : IAuthService
             user.District = req.District;
             user.Rt = req.Rt;
             user.Rw = req.Rw;
-            user.ModDate = req.ModDate;
+            user.ModDate = DateTime.UtcNow;
             user.ModBy = req.ModBy;
             user.ModIpAddress = req.ModIpAddress;
             
@@ -360,7 +386,7 @@ public class AuthService : IAuthService
                 Action = UserSecurityActions.AccountUpdated,
                 Description = "Akun diperbarui",
                 IpAddress = req.ModIpAddress,
-                CreDate = req.ModDate ?? DateTime.UtcNow,
+                CreDate = DateTime.UtcNow,
                 CreBy = req.ModBy,
                 CreIpAddress = req.ModIpAddress
             };
@@ -441,7 +467,7 @@ public class AuthService : IAuthService
             var securityLog = new UserSecurityLog
             {
                 UserId = user.Id,
-                Action = UserSecurityActions.AccountUpdated,
+                Action = UserSecurityActions.LoginSuccess,
                 Description = "User login berhasil",
                 IpAddress = req.ModIpAddress,
                 CreDate = req.ModDate ?? DateTime.UtcNow,
@@ -476,7 +502,8 @@ public class AuthService : IAuthService
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var token = await _refreshTokenRepository.GetByTokenHashAsync(refreshToken);
+            var hashedRefreshToken = HashToken(refreshToken);
+            var token = await _refreshTokenRepository.GetByTokenHashAsync(hashedRefreshToken);
             if (token != null && token.UserId == userId && token.Revoked == null)
             {
                 await _refreshTokenService.RevokeRefreshTokenAsync(token.Id);
@@ -649,11 +676,14 @@ public class AuthService : IAuthService
             user.ModBy = req.ModBy;
             user.ModIpAddress = req.ModIpAddress;
             
-            var passwordHistory = await _passwordHistoryRepository.GetRowByPasswordHashAsync(user.PasswordHash);
-            if (passwordHistory is not null)
+            var passwordHistory = await _passwordHistoryRepository.GetRowsByUserIdAsync(user.Id);
+            if (passwordHistory.Any())
             {
-                Logger.Error("Password telah digunakan sebelumnya.");
-                throw new ValidationException("Password telah digunakan sebelumnya.");
+                if (passwordHistory.Any(ph => BCrypt.Net.BCrypt.Verify(req.NewPassword, ph.PasswordHash)))
+                {
+                    Logger.Error("Password telah digunakan sebelumnya.");
+                    throw new ValidationException("Password baru tidak boleh sama dengan password sebelumnya.");
+                }
             }
 
             await _userTokenRepository.DeleteAsync(userToken);

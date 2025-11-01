@@ -85,3 +85,10 @@ app.MapMetrics();
 app.MapGrpcService<GrpcAuthService>();
 
 app.Run();
+
+// Make the Program class accessible for testing
+namespace IdentityService.API
+{
+    public partial class Program { }
+}
+

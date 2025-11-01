@@ -6,6 +6,7 @@ namespace IdentityService.Core.Interfaces.Repositories;
 
 public interface IUserRepository : IGenericRepository<User>
 {
+    Task<User?> GetByIdWithRolesAsync(Guid id, CancellationToken ct = default);
     Task<User?> GetByUsernameAsync(string username, CancellationToken ct = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken ct = default);

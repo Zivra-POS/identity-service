@@ -66,11 +66,12 @@ public class RefreshTokenService : IRefreshTokenService
         rt.ModDate = DateTime.UtcNow;
 
         await _refreshRepo.RevokeAsync(rt, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
     }
     #endregion
 
     #region RotateRefreshTokenAsync
-    public async Task<(User user, string newRefreshToken)?> RotateRefreshTokenAsync(string existingRawToken, string? deviceId = null, CancellationToken ct = default)
+    public async Task<string?> RotateRefreshTokenAsync(string existingRawToken, Guid accessTokenId, string? deviceId = null, CancellationToken ct = default)
     {
         var existingHash = HashToken(existingRawToken);
         var existing = await _refreshRepo.GetByTokenHashAsync(existingHash, ct);
@@ -85,6 +86,7 @@ public class RefreshTokenService : IRefreshTokenService
 
         var newRt = new RefreshToken
         {
+            AccessTokenId = accessTokenId,
             UserId = user.Id,
             Token = newHash,
             Expires = DateTime.UtcNow.AddDays(refreshDays),
@@ -102,7 +104,7 @@ public class RefreshTokenService : IRefreshTokenService
         await _refreshRepo.RevokeAsync(existing, ct);
         await _unitOfWork.SaveChangesAsync(ct);
 
-        return (user, newRaw);
+        return newRaw;
     }
     #endregion
 

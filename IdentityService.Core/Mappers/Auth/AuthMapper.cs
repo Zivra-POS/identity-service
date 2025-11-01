@@ -1,11 +1,10 @@
-using IdentityService.Shared.DTOs.Response;
 using IdentityService.Shared.DTOs.Response.Auth;
 
-namespace IdentityService.Core.Mappers.Auth;
+namespace IdentityService.Core.Mappers;
 
 public static class AuthMapper
 {
-    public static AuthResponse ToAuthResponse(Entities.User user, IEnumerable<string> roles, string? token, string? refreshToken)
+    public static AuthResponse ToAuthResponse(Entities.User user, IEnumerable<string> roles, string? token, string? refreshToken, string? verifyToken = null) 
     {
         return new AuthResponse
         {
@@ -15,7 +14,8 @@ public static class AuthMapper
             Email = user.Email,
             Roles = roles,
             Token = token ?? string.Empty,
-            RefreshToken = refreshToken ?? string.Empty
+            RefreshToken = refreshToken ?? string.Empty,
+            VerifyToken = verifyToken
         };
     }
 }

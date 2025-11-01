@@ -1,33 +1,38 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\IdentityService.Core\IdentityService.Core.csproj" />
-    <ProjectReference Include="..\..\ZivraFramework\ZivraFramework.EFCore\ZivraFramework.EFCore.csproj" />
-    <ProjectReference Include="..\..\ZivraFramework\ZivraFramework.Core\ZivraFramework.Core.csproj" />
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\IdentityService.Core\IdentityService.Core.csproj" />
+        <ProjectReference Include="..\..\ZivraFramework\ZivraFramework.EFCore\ZivraFramework.EFCore.csproj" />
+        <ProjectReference Include="..\..\ZivraFramework\ZivraFramework.Core\ZivraFramework.Core.csproj" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.21" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.21" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.10" />
-    <PackageReference Include="Grpc.AspNetCore" Version="2.57.0" />
-    <PackageReference Include="Grpc.Tools" Version="2.57.0" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.10">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.10" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.21" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.21" />
+        <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="8.0.21" />
 
-  <ItemGroup>
-      <Protobuf Include="Protos/auth.proto" GrpcServices="Server" />
-  </ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.21" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="8.0.21" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.21" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.21">
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+            <PrivateAssets>all</PrivateAssets>
+        </PackageReference>
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
-    
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
+
+        <PackageReference Include="Grpc.AspNetCore" Version="2.57.0" />
+        <PackageReference Include="Grpc.Tools" Version="2.57.0" PrivateAssets="All" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Protobuf Include="Protos/auth.proto" GrpcServices="Server" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
 </Project>

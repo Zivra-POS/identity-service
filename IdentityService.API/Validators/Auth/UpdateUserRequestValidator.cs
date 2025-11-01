@@ -16,8 +16,7 @@ public class UpdateUserRequestValidator : AbstractValidator<UpdateUserRequest>
             .When(x => !string.IsNullOrWhiteSpace(x.DisplayName));
 
         RuleFor(x => x.PhoneNumber)
-            .Matches("^\\+?[0-9]{6,15}$")
-            .WithMessage("Format nomor telepon tidak valid. Gunakan angka, dengan kode negara opsional.")
+            .MaximumLength(20).WithMessage("Nomor Telepon maksimal {MaxLength} karakter.")
             .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber));
 
         RuleFor(x => x.ProfilImage)

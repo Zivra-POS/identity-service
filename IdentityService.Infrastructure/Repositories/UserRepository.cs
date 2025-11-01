@@ -17,6 +17,20 @@ public class UserRepository : GenericRepository<User>, IUserRepository
         return await _set.FirstOrDefaultAsync(u => u.Username == username, ct);
     }
     #endregion
+    
+    #region GetByIdWithRolesAsync
+    public async Task<User?> GetByIdWithRolesAsync(Guid id, CancellationToken ct = default)
+    {
+        return await _set
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .Include(u => u.Claims)
+            .Include(u => u.RefreshTokens)
+            .Include(u => u.UserBranches)
+            .FirstOrDefaultAsync(u => u.Id == id, ct);
+    }
+    #endregion
+
 
     #region GetByEmailAsync
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)

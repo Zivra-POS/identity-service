@@ -18,14 +18,14 @@ public class CurrentUserService : ICurrentUserService
 
     private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
 
-    public Guid? UserId
+    public Guid UserId
     {
         get
         {
             var id = User?.FindFirstValue(JwtRegisteredClaimNames.Sub)
                      ?? User?.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            return Guid.TryParse(id, out var guid) ? guid : null;
+            return Guid.TryParse(id, out var guid) ? guid : Guid.Empty;
         }
     }
 

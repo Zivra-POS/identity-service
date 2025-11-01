@@ -4,7 +4,7 @@ namespace IdentityService.Core.Interfaces.Services;
 
 public interface ICurrentUserService
 {
-    Guid? UserId { get; }
+    Guid UserId { get; }
     string? Username { get; }
     string? Email { get; }
     string? FullName { get; }

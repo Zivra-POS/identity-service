@@ -18,4 +18,11 @@ public class PasswordHistoryRepository : GenericRepository<PasswordHistory>, IPa
         return await _set.FirstOrDefaultAsync(ph => ph.PasswordHash == passwordHash, cancellationToken);
     }
     #endregion
+    
+    #region GetRowsByUserIdAsync
+    public async Task<List<PasswordHistory>> GetRowsByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await _set.Where(ph => ph.UserId == userId).ToListAsync(cancellationToken);
+    }
+    #endregion
 }

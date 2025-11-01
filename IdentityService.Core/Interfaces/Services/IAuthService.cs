@@ -1,3 +1,4 @@
+using IdentityService.Core.Entities;
 using IdentityService.Shared.DTOs.Request;
 using IdentityService.Shared.DTOs.Request.Auth;
 using IdentityService.Shared.DTOs.Request.User;
@@ -9,6 +10,7 @@ namespace IdentityService.Core.Interfaces.Services;
 
 public interface IAuthService
 {
+    Task<User> GetUserByIdAsync(Guid userId);
     Task<Result<AuthResponse>> RegisterAsync(RegisterRequest request);
     Task<Result<AuthResponse>> LoginAsync(LoginRequest request);
     Task<Result<string>> LogoutAsync(Guid userId, string refreshToken);

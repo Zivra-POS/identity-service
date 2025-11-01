@@ -1,10 +1,15 @@
+using IdentityService.Core.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 using IdentityService.Core.Interfaces.Services;
-using IdentityService.Core.Mappers.Auth;
+using IdentityService.Core.Mappers;
 using IdentityService.Shared.DTOs.Request.Auth;
 using IdentityService.Shared.DTOs.Request.User;
+using IdentityService.Shared.DTOs.Response.Auth;
+using IdentityService.Shared.Response;
 using Microsoft.AspNetCore.Authorization;
 using ZivraFramework.Core.API.Helpers;
+using ZivraFramework.Core.Interfaces;
+using ZivraFramework.Core.Utils;
 
 namespace IdentityService.API.Controllers;
 
@@ -17,19 +22,22 @@ public class AuthController : ControllerBase
     private readonly ITokenService _tokenService;
     private readonly ICurrentUserService _currentUser;
     private readonly IConfiguration _config;
+    private readonly IUnitOfWork _unitOfWork;
 
     public AuthController(
         IAuthService authService,
         IRefreshTokenService refreshTokenService,
         ITokenService tokenService,
         IConfiguration config,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        IUnitOfWork unitOfWork)
     {
         _authService = authService;
         _refreshTokenService = refreshTokenService;
         _tokenService = tokenService;
         _config = config;
         _currentUser = currentUser;
+        _unitOfWork = unitOfWork;
     }
 
     #region Register
@@ -49,6 +57,8 @@ public class AuthController : ControllerBase
     [HttpPost("register-staff")]
     public async Task<IActionResult> RegisterStaff([FromForm] RegisterStaffRequest req)
     {
+        req.OwnerId ??= _currentUser.UserId;
+        
         var r = await _authService.RegisterStaffAsync(req);
         return StatusCode((int)r.StatusCode, r);
     }
@@ -101,47 +111,64 @@ public class AuthController : ControllerBase
     #endregion
     
     #region RefreshToken
+    [AllowAnonymous]
     [HttpPost("refresh")]
-    public async Task<IActionResult> Refresh()
+    public async Task<IActionResult> Refresh([FromQuery] Guid userId)
     {
-        var existingRaw = RefreshTokenHelper.GetRefreshTokenFromRequest(Request);
-        if (string.IsNullOrEmpty(existingRaw))
-            return Unauthorized(new { message = "Refresh token tidak ditemukan." });
-
-        var rotated = await _refreshTokenService.RotateRefreshTokenAsync(existingRaw);
-        if (rotated == null)
-            return Unauthorized(new { message = "Refresh token tidak valid atau sudah kedaluwarsa." });
-
-        var (user, newRawToken) = rotated.Value;
-        
-        var roleNames = user.UserRoles.Select(ur => ur.Role?.Name).Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r!).ToArray();
-
-        var newJwt = await _tokenService.GenerateJwtToken(user, roleNames);
-        var resp = AuthMapper.ToAuthResponse(user, roleNames, newJwt.Token, newRawToken);
-
-        var jwtHours = int.TryParse(_config["JwtSettings:ExpireHours"], out var h) ? h : 3;
-        var refreshDays = int.TryParse(_config["JwtSettings:RefreshTokenDays"], out var d) ? d : 30;
-
-        var accessCookieOptions = new CookieOptions
+        await _unitOfWork.BeginTransactionAsync();
+        try
         {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Expires = DateTime.UtcNow.AddHours(jwtHours)
-        };
+            var existingRaw = RefreshTokenHelper.GetRefreshTokenFromRequest(Request);
+            if (string.IsNullOrEmpty(existingRaw))
+                throw new UnauthorizedException("Refresh token tidak ditemukan.");
 
-        var refreshCookieOptions = new CookieOptions
+            var user = await _authService.GetUserByIdAsync(userId);
+            var userRoles = user.UserRoles
+                .Select(ur => ur.Role?.Name)
+                .Where(rn => !string.IsNullOrWhiteSpace(rn))
+                .Select(rn => rn!).ToList();
+
+            var newJwt = await _tokenService.GenerateJwtToken(user, userRoles);
+            var newRefreshToken = await _refreshTokenService.RotateRefreshTokenAsync(existingRaw, newJwt.Id);
+            
+            if (newRefreshToken is null)
+                throw new UnauthorizedException("Refresh token tidak valid atau sudah kadaluarsa.");
+            
+            var resp = AuthMapper.ToAuthResponse(user, userRoles, newJwt.Token, newRefreshToken);
+
+            var jwtHours = int.TryParse(_config["JwtSettings:ExpireHours"], out var h) ? h : 3;
+            var refreshDays = int.TryParse(_config["JwtSettings:RefreshTokenDays"], out var d) ? d : 30;
+
+            var accessCookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddHours(jwtHours)
+            };
+
+            var refreshCookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTime.UtcNow.AddDays(refreshDays)
+            };
+
+            Response.Cookies.Append("access_token", newJwt.Token, accessCookieOptions);
+            Response.Cookies.Append("refresh_token", newRefreshToken, refreshCookieOptions);
+            
+            await _unitOfWork.CommitTransactionAsync();
+            
+            Logger.Info("Berhasil merotasi refresh token untuk user ID: " + user.Id);
+            return Ok(Result<AuthResponse>.Success(resp));
+        }
+        catch (Exception e)
         {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Expires = DateTime.UtcNow.AddDays(refreshDays)
-        };
-
-        Response.Cookies.Append("access_token", newJwt.Token, accessCookieOptions);
-        Response.Cookies.Append("refresh_token", newRawToken, refreshCookieOptions);
-
-        return Ok(resp);
+            Logger.Error("Gagal merotasi refresh token: " + e.Message);
+            
+            throw;
+        }
     }
     #endregion
 
@@ -150,7 +177,7 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Logout()
     {
-        var userId = (Guid)_currentUser.UserId!;
+        var userId = _currentUser.UserId;
         
         var refreshToken = RefreshTokenHelper.GetRefreshTokenFromRequest(Request);
         if (string.IsNullOrWhiteSpace(refreshToken))
@@ -172,7 +199,7 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> LogoutAllDevices()
     {
-        var userId = (Guid)_currentUser.UserId!;
+        var userId = _currentUser.UserId;
 
         var r = await _authService.LogoutAllDevicesAsync(userId);
         if (!r.IsSuccess)
