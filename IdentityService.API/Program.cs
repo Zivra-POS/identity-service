@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
-using FluentValidation;
-using FluentValidation.AspNetCore;
+using Prometheus;
 using IdentityService.API.Extensions;
 using IdentityService.Core.Interfaces.Services.Message;
 using IdentityService.Infrastructure.Persistence;
@@ -75,11 +74,13 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseRouting();
+app.UseHttpMetrics();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapMetrics();
 
 app.MapGrpcService<GrpcAuthService>();
 
