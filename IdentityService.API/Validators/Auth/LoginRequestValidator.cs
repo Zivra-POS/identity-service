@@ -8,9 +8,9 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
 {
     public LoginRequestValidator()
     {
-        RuleFor(x => x.Username)
-            .NotEmpty().WithMessage("Username wajib diisi.")
-            .MinimumLength(3).WithMessage("Username minimal {MinLength} karakter.");
+        RuleFor(x => x.UsernameOrEmail)
+            .NotEmpty().WithMessage("Username atau Email wajib diisi.")
+            .MinimumLength(3).WithMessage("Username atau Email minimal {MinLength} karakter.");
 
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("Password wajib diisi.")

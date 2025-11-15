@@ -1,15 +1,20 @@
 using IdentityService.Shared.DTOs.Request.Role;
 using IdentityService.Shared.DTOs.RoleClaim;
 using IdentityService.Shared.Response;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System;
 
 namespace IdentityService.Core.Interfaces.Services;
 
 public interface IRoleClaimService
 {
-    Task<Result<IEnumerable<RoleClaimResponse>>> GetByRoleIdAsync(Guid roleId);
-    Task<Result<RoleClaimResponse>> GetByIdAsync(Guid id);
-    Task<Result<RoleClaimResponse>> CreateAsync(RoleClaimRequest req);
-    Task<Result<RoleClaimResponse>> UpdateAsync(RoleClaimRequest req);
-    Task<Result<string>> DeleteAsync(Guid id);
-}
+    Task<IEnumerable<RoleClaimResponse>> GetByRoleIdAsync(Guid roleId);
+    Task<RoleClaimResponse> GetByIdAsync(Guid id);
+    Task<RoleClaimResponse> CreateAsync(RoleClaimRequest req);
+    Task<RoleClaimResponse> UpdateAsync(RoleClaimRequest req);
+    Task<string> DeleteAsync(Guid id);
 
+    // Added: get by hashed id
+    Task<RoleClaimResponse> GetByHashedIdAsync(string hashedId);
+}

@@ -7,29 +7,25 @@ public class BranchRequestValidator : AbstractValidator<BranchRequest>
 {
     public BranchRequestValidator()
     {
-        RuleFor(x => x.StoreId)
-            .NotEmpty()
-            .WithMessage("Store ID is required");
-
         RuleFor(x => x.Name)
             .NotEmpty()
-            .WithMessage("Branch name is required")
-            .MaximumLength(100)
-            .WithMessage("Branch name cannot exceed 100 characters");
+            .WithMessage("Nama cabang wajib diisi.")
+            .MaximumLength(50)
+            .WithMessage("Nama cabang tidak boleh lebih dari 50 karakter.");
 
         RuleFor(x => x.Code)
             .MaximumLength(50)
-            .WithMessage("Branch code cannot exceed 50 characters")
-            .When(x => !string.IsNullOrEmpty(x.Code));
+            .WithMessage("Kode cabang tidak boleh lebih dari 50 karakter.")
+            .When(x => !string.IsNullOrWhiteSpace(x.Code));
 
         RuleFor(x => x.Address)
-            .MaximumLength(500)
-            .WithMessage("Address cannot exceed 500 characters")
-            .When(x => !string.IsNullOrEmpty(x.Address));
+            .MaximumLength(4000)
+            .WithMessage("Alamat tidak boleh lebih dari 4000 karakter.")
+            .When(x => !string.IsNullOrWhiteSpace(x.Address));
 
         RuleFor(x => x.Phone)
-            .Matches(@"^[\+]?[1-9][\d]{0,15}$")
-            .WithMessage("Please enter a valid phone number")
-            .When(x => !string.IsNullOrEmpty(x.Phone));
+            .NotEmpty()
+            .WithMessage(
+                "Nomor telepon tidak valid. Nomor harus dimulai dengan 08 dan terdiri dari 10 hingga 15 digit.");
     }
 }

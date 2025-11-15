@@ -1,7 +1,7 @@
 using System.Net;
 using System.Security.Cryptography;
+using System.Text;
 using IdentityService.Core.Entities;
-using IdentityService.Core.Exceptions;
 using IdentityService.Core.Entities.Message;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
@@ -10,11 +10,12 @@ using IdentityService.Core.Mappers;
 using IdentityService.Shared.Constants;
 using IdentityService.Shared.DTOs.Request.Auth;
 using IdentityService.Shared.DTOs.Request.User;
-using IdentityService.Shared.DTOs.Response;
 using IdentityService.Shared.DTOs.Response.Auth;
-using IdentityService.Shared.Response;
 using Microsoft.Extensions.Configuration;
+using ZivraFramework.Core.API.Exception;
+using ZivraFramework.Core.Filtering.Entities;
 using ZivraFramework.Core.Interfaces;
+using ZivraFramework.Core.Models;
 using ZivraFramework.Core.Utils;
 
 namespace IdentityService.Infrastructure.Services;
@@ -90,8 +91,30 @@ public class AuthService : IAuthService
     }
     #endregion
 
+    #region GetUserByHashedIdAsync
+    public async Task<User?> GetUserByHashedIdAsync(string hashedId)
+    {
+        try
+        {
+            var user = await _userRepository.GetByHashedIdAsync(hashedId);
+            if (user == null)
+            {
+                Logger.Info($"User dengan HashedId '{hashedId}' tidak ditemukan.");
+                return null;
+            }
+
+            return user;
+        }
+        catch (Exception e)
+        {
+            Logger.Error("Gagal mengambil data user by hashed id.", e);
+            throw;
+        }
+    }
+    #endregion
+
     #region RegisterAsync
-    public async Task<Result<AuthResponse>> RegisterAsync(RegisterRequest req)
+    public async Task<AuthResponse> RegisterAsync(RegisterRequest req)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
@@ -111,9 +134,9 @@ public class AuthService : IAuthService
             
             if (errors.Count > 0) throw new ValidationException(errors);
             
+            
             var user = new User
             {
-                Id = req.Id,
                 FullName = req.FullName,
                 Username = req.Username,
                 NormalizedUsername = req.Username.ToUpperInvariant(),
@@ -154,7 +177,7 @@ public class AuthService : IAuthService
                 Action = UserSecurityActions.AccountCreated,
                 Description = "Pendaftaran akun berhasil",
                 IpAddress = req.CreIpAddress,
-                CreDate = req.CreDate,
+                CreDate = req.CreDate ?? DateTime.UtcNow,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
             };
@@ -165,7 +188,7 @@ public class AuthService : IAuthService
             {
                 UserId = user.Id,
                 PasswordHash = user.PasswordHash,
-                CreDate = req.CreDate,
+                CreDate = req.CreDate ?? DateTime.UtcNow,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
             };
@@ -178,12 +201,11 @@ public class AuthService : IAuthService
                 .Select(rn => rn!)
                 .ToArray();
             
+            await _unitOfWork.SaveChangesAsync();
+            
             var verifyToken = await SendVerifyEmailAsync(new SendVerifyEmailRequest
             {
-                UserId = user.Id,
-                FullName = req.FullName,
                 Email = user.Email,
-                Username = user.Username,
                 IsSend = false,
                 CreDate = DateTime.UtcNow,
                 CreBy = req.CreBy,
@@ -196,16 +218,16 @@ public class AuthService : IAuthService
                 FullName = req.FullName,
                 Email = user.Email,
                 Username = user.Username,
-                Token = verifyToken.Data,
+                VerificationCode = verifyToken,
             });
             
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
             
-            var resp = AuthMapper.ToAuthResponse(user, roleNames, null, null, verifyToken.Data);
+            var resp = AuthMapper.ToAuthResponse(user, roleNames, null, null, verifyToken);
             
             Logger.Info($"User {user.Username} telah berhasil dibuat.");
-            return Result<AuthResponse>.Success(resp);
+            return resp;
         }
         catch (Exception e)
         {
@@ -217,15 +239,23 @@ public class AuthService : IAuthService
     #endregion
 
     #region RegisterStaffAsync
-    public async Task<Result<RegisterStaffResponse>> RegisterStaffAsync(RegisterStaffRequest req)
+    public async Task<RegisterStaffResponse> RegisterStaffAsync(RegisterStaffRequest req)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            if (req.CreDate.Kind == DateTimeKind.Local)
-                req.CreDate = req.CreDate.ToUniversalTime();
-            else if (req.CreDate.Kind == DateTimeKind.Unspecified)
-                req.CreDate = DateTime.SpecifyKind(req.CreDate, DateTimeKind.Utc);
+            // Normalize CreDate safely (it's nullable on DTO)
+            if (req.CreDate.HasValue)
+            {
+                if (req.CreDate.Value.Kind == DateTimeKind.Local)
+                    req.CreDate = req.CreDate.Value.ToUniversalTime();
+                else if (req.CreDate.Value.Kind == DateTimeKind.Unspecified)
+                    req.CreDate = DateTime.SpecifyKind(req.CreDate.Value, DateTimeKind.Utc);
+            }
+            else
+            {
+                req.CreDate = DateTime.UtcNow;
+            }
 
             List<string> errors = new();
             if (await _userRepository.ExistsUsernameAsync(req.Username))
@@ -266,7 +296,7 @@ public class AuthService : IAuthService
                 Rt = req.Rt,
                 Rw = req.Rw,
                 IsFirstLogin = false,
-                CreDate = req.CreDate,
+                CreDate = req.CreDate ?? DateTime.UtcNow,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
             };
@@ -282,7 +312,7 @@ public class AuthService : IAuthService
                 {
                     UserId = user.Id,
                     RoleId = role.Id,
-                    CreDate = req.CreDate,
+                    CreDate = req.CreDate ?? DateTime.UtcNow,
                     CreBy = req.CreBy,
                     CreIpAddress = req.CreIpAddress
                 };
@@ -295,7 +325,7 @@ public class AuthService : IAuthService
                 Action = UserSecurityActions.AccountCreated,
                 Description = "Pendaftaran akun berhasil",
                 IpAddress = req.CreIpAddress,
-                CreDate = req.CreDate,
+                CreDate = req.CreDate ?? DateTime.UtcNow,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
             };
@@ -306,7 +336,7 @@ public class AuthService : IAuthService
             {
                 UserId = user.Id,
                 PasswordHash = user.PasswordHash,
-                CreDate = req.CreDate,
+                CreDate = req.CreDate ?? DateTime.UtcNow,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
             };
@@ -315,10 +345,7 @@ public class AuthService : IAuthService
             
             var verifyToken = await SendVerifyEmailAsync(new SendVerifyEmailRequest
             {
-                UserId = user.Id,
-                FullName = req.FullName,
                 Email = user.Email,
-                Username = user.Username,
                 IsSend = false,
                 CreDate = DateTime.UtcNow,
                 CreBy = req.CreBy,
@@ -331,7 +358,7 @@ public class AuthService : IAuthService
                 FullName = user.FullName,
                 Email = user.Email,
                 Username = user.Username,
-                Token = verifyToken.Data,
+                VerificationCode = verifyToken,
             });
             
             await _unitOfWork.SaveChangesAsync();
@@ -339,7 +366,7 @@ public class AuthService : IAuthService
             
             var resp = RegisterStaffMapper.ToRegisterStaffResponse(user);
             Logger.Info($"Staff dengan Username '{user.Username}' berhasil didaftarkan.");
-            return Result<RegisterStaffResponse>.Success(resp);
+            return resp;
         }
         catch (Exception e)
         {
@@ -351,7 +378,7 @@ public class AuthService : IAuthService
     #endregion
 
     #region UpdateUserAsync
-    public async Task<Result<UpdateUserResponse>> UpdateUserAsync(UpdateUserRequest req)
+    public async Task<UpdateUserResponse> UpdateUserAsync(UpdateUserRequest req)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
@@ -398,7 +425,7 @@ public class AuthService : IAuthService
             
             var resp = UpdateUserMapper.ToUpdateUserResponse(user);
             Logger.Info($"User dengan Id '{user.Id}' berhasil diperbarui.");
-            return Result<UpdateUserResponse>.Success(resp);
+            return resp;
         }
         catch (Exception e)
         {
@@ -410,12 +437,22 @@ public class AuthService : IAuthService
     #endregion
 
     #region LoginAsync
-    public async Task<Result<AuthResponse>> LoginAsync(LoginRequest req)
+    public async Task<AuthResponse> LoginAsync(LoginRequest req)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var user = await _userRepository.GetByUsernameAsync(req.Username);
+            User? user;
+
+            if (req.UsernameOrEmail.Contains("@"))
+            {
+                user = await _userRepository.GetByEmailAsync(req.UsernameOrEmail);
+            }
+            else
+            {
+                user = await _userRepository.GetByUsernameAsync(req.UsernameOrEmail);
+            }
+            
             if (user is null)
             {
                 throw new NotFoundException("Username tidak ditemukan.");
@@ -443,7 +480,7 @@ public class AuthService : IAuthService
 
                 var remainingAttempts = Math.Max(0, maxAttempts - user.AccessFailedCount);
                 var errorMessage = user.IsLockedOut() 
-                    ? $"Password salah. Akun terkunci sampai {user.LockoutEnd?.ToString("dd/MM/yyyy HH:mm")}"
+                    ? $"Password salah. Akun terkunci sampai {user.LockoutEnd?.ToString("dd/MM/yyyy HH:mm") }"
                     : $"Password salah. Sisa percobaan: {remainingAttempts}";
 
                 throw new ValidationException(errorMessage);
@@ -484,8 +521,10 @@ public class AuthService : IAuthService
             await _unitOfWork.CommitTransactionAsync();
             
             Logger.Info($"User '{user.Username}' berhasil login.");
+            // Debug: print HashedStoreId to investigate why StoreId is null/empty in response
+            Logger.Info($"Debug: user.HashedStoreId = '{user.HashedStoreId ?? "<null>"}'");
             var resp = AuthMapper.ToAuthResponse(user, roleNames, token.Token, refreshToken);
-            return Result<AuthResponse>.Success(resp);
+            return resp;
         }
         catch (Exception e)
         {
@@ -497,7 +536,7 @@ public class AuthService : IAuthService
     #endregion
 
     #region LogoutAsync
-    public async Task<Result<string>> LogoutAsync(Guid userId, string refreshToken)
+    public async Task<string> LogoutAsync(Guid userId, string refreshToken)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
@@ -528,7 +567,7 @@ public class AuthService : IAuthService
             await _unitOfWork.CommitTransactionAsync();
 
             Logger.Info($"User dengan Id '{userId}' berhasil logout dari satu device.");
-            return Result<string>.Success("Logout berhasil.");
+            return "Logout berhasil.";
         }
         catch (Exception e)
         {
@@ -540,7 +579,7 @@ public class AuthService : IAuthService
     #endregion
 
     #region LogoutAllDevicesAsync
-    public async Task<Result<string>> LogoutAllDevicesAsync(Guid userId)
+    public async Task<string> LogoutAllDevicesAsync(Guid userId)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
@@ -579,7 +618,7 @@ public class AuthService : IAuthService
             await _unitOfWork.CommitTransactionAsync();
 
             Logger.Info($"User dengan Id '{userId}' berhasil logout dari semua device. Total token yang di-revoke: {refreshTokens.Count()}");
-            return Result<string>.Success("Logout dari semua device berhasil.");
+            return "Logout dari semua device berhasil.";
         }
         catch (Exception e)
         {
@@ -591,7 +630,7 @@ public class AuthService : IAuthService
     #endregion
 
     #region RequestPasswordResetAsync
-    public async Task<Result<ForgotPasswordResponse>> RequestPasswordResetAsync(ForgotPasswordRequest req)
+    public async Task<ForgotPasswordResponse> RequestPasswordResetAsync(ForgotPasswordRequest req)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
@@ -605,12 +644,12 @@ public class AuthService : IAuthService
 
             var userToken = new UserToken
             {
-                Id = req.Id,
+                Id = req.Id.HasValue && req.Id.Value != Guid.Empty ? req.Id.Value : Guid.NewGuid(),
                 UserId = user.Id,
                 LoginProvider = "Local",
                 Name = "PasswordReset",
                 Value = hashedToken,
-                CreDate = req.CreDate,
+                CreDate = req.CreDate ?? DateTime.UtcNow,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
             };
@@ -635,7 +674,7 @@ public class AuthService : IAuthService
             
             userToken.Value = rawToken;
             var resp = ForgotPasswordMapper.ToForgotPasswordResponse(userToken);
-            return Result<ForgotPasswordResponse>.Success(resp);
+            return resp;
         }
         catch (Exception e)
         {
@@ -647,7 +686,7 @@ public class AuthService : IAuthService
     #endregion
 
     #region ResetPasswordAsync
-    public async Task<Result<string>> ResetPasswordAsync(ResetPasswordRequest req)
+    public async Task<string> ResetPasswordAsync(ResetPasswordRequest req)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
@@ -710,7 +749,7 @@ public class AuthService : IAuthService
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
 
-            return Result<string>.Success("Password berhasil direset.");
+            return "Password berhasil direset.";
         }
         catch (Exception e)
         {
@@ -722,32 +761,32 @@ public class AuthService : IAuthService
     #endregion
     
     #region SendVerifyEmailAsync
-    public async Task<Result<string>> SendVerifyEmailAsync(SendVerifyEmailRequest req, bool withTxn = true)
+    public async Task<string> SendVerifyEmailAsync(SendVerifyEmailRequest req, bool withTxn = true)
     {
         if (withTxn) await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var rawToken = GenerateRandomToken();
-            var hashedToken = HashToken(rawToken);
+            var verificationCode = Generate6DigitCode();
+            var hashedCode = HashToken(verificationCode);
             
-            var user = await _userRepository.GetByIdAsync(req.UserId);
+            var user = await _userRepository.GetByEmailAsync(req.Email.ToUpperInvariant());
             if (user == null)
                 throw new NotFoundException("User tidak ditemukan.");
 
-            var existingToken = await _userTokenRepository.ExistByNameAndUserIdAsync("EmailVerification", req.UserId);
+            var existingToken = await _userTokenRepository.ExistByNameAndUserIdAsync("EmailVerification", user.Id);
             if (existingToken)
             {
-                await _userTokenRepository.DeleteByNameAndUserIdAsync("EmailVerification", req.UserId);
+                await _userTokenRepository.DeleteByNameAndUserIdAsync("EmailVerification", user.Id);
             }
             
-            var userToken = new UserToken()
+            var userToken = new UserToken
             {
-                Id = Guid.NewGuid(),
+                Id = req.Id.HasValue && req.Id.Value != Guid.Empty ? req.Id.Value : Guid.NewGuid(),
                 UserId = user.Id,
                 LoginProvider = "Local",
                 Name = "EmailVerification",
-                Value = hashedToken,
-                CreDate = req.CreDate,
+                Value = hashedCode,
+                CreDate = req.CreDate ?? DateTime.UtcNow,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
             };
@@ -757,15 +796,15 @@ public class AuthService : IAuthService
             var userSecurityLog = new UserSecurityLog
             {
                 Id = Guid.NewGuid(),
-                UserId = req.UserId,
+                UserId = user.Id,
                 Action = UserSecurityActions.SendEmailVerification,
                 Description = "Email verifikasi dikirim",
                 IpAddress = req.CreIpAddress,
-                CreDate = req.CreDate,
+                CreDate = req.CreDate ?? DateTime.UtcNow,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
             };
-            
+             
             await _userSecurityLogRepository.AddAsync(userSecurityLog);
             
             if (withTxn)
@@ -781,14 +820,14 @@ public class AuthService : IAuthService
                     FullName = user.FullName ?? string.Empty,
                     Email = user.Email,
                     Username = user.Username,
-                    Token = rawToken
+                    VerificationCode = verificationCode
                 };
                 
                 await _emailVerificationEvent.PublishAsync(emailMessage);
             }
             
-            Logger.Info($"Email verifikasi berhasil dikirim ke user dengan Id '{req.UserId}'.");
-            return Result<string>.Success(rawToken);
+            Logger.Info($"Email verifikasi berhasil dikirim ke user dengan Id '{user.Username}'.");
+            return verificationCode;
         }
         catch (Exception e)
         {
@@ -800,21 +839,21 @@ public class AuthService : IAuthService
     #endregion
     
     #region VerifyEmailAsync
-    public async Task<Result<string>> VerifyEmailAsync(string token)
+    public async Task<string> VerifyEmailAsync(string code)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var hashToken = HashToken(token);
-            var userToken = await _userTokenRepository.GetByNameAndValueAsync("EmailVerification", hashToken);
+            var hashedCode = HashToken(code);
+            var userToken = await _userTokenRepository.GetByNameAndValueAsync("EmailVerification", hashedCode);
             if (userToken == null)
-                throw new ValidationException("Token verifikasi tidak valid.");
+                throw new ValidationException("Kode verifikasi tidak valid.");
             
             var expiryHours = 24;
             if (userToken.CreDate.AddHours(expiryHours) < DateTime.UtcNow)
             {                
                 await _userTokenRepository.DeleteAsync(userToken);
-                throw new ValidationException("Token verifikasi telah kedaluwarsa.");
+                throw new ValidationException("Kode verifikasi telah kedaluwarsa.");
             }
             
             var user = await _userRepository.GetByIdAsync(userToken.UserId);
@@ -828,15 +867,15 @@ public class AuthService : IAuthService
             user.ModDate = DateTime.UtcNow;
             user.ModBy = "System";
             user.ModIpAddress = "System";
-            
+
             await _userTokenRepository.DeleteAsync(userToken);
             _userRepository.Update(user);
-            
+
             await _unitOfWork.SaveChangesAsync();
             await _unitOfWork.CommitTransactionAsync();
-            
+
             Logger.Info($"Email untuk user dengan Id '{user.Id}' telah terverifikasi.");
-            return Result<string>.Success("Email berhasil diverifikasi.");
+            return "Email berhasil diverifikasi.";
         }
         catch (Exception e)
         {
@@ -848,7 +887,7 @@ public class AuthService : IAuthService
     #endregion
     
     #region UnlockUserAsync
-    public async Task<Result<string>> UnlockUserAsync(UnlockUserRequest request)
+    public async Task<string> UnlockUserAsync(UnlockUserRequest request)
     {
         await _unitOfWork.BeginTransactionAsync();
         try
@@ -877,9 +916,9 @@ public class AuthService : IAuthService
                 Action = UserSecurityActions.AccountUnlocked,
                 Description = $"Akun dibuka secara manual. Alasan: {request.Reason ?? "Tidak ada alasan"}",
                 IpAddress = request.ModIpAddress,
-                CreDate = request.ModDate,
-                CreBy = request.ModBy,
-                CreIpAddress = request.ModIpAddress
+                CreDate = request.CreDate ?? DateTime.UtcNow,
+                CreBy = request.CreBy,
+                CreIpAddress = request.CreIpAddress
             };
 
             await _userSecurityLogRepository.AddAsync(securityLog);
@@ -888,7 +927,7 @@ public class AuthService : IAuthService
             await _unitOfWork.CommitTransactionAsync();
 
             Logger.Info($"User '{user.Username}' berhasil dibuka dari lockout oleh '{request.ModBy}'.");
-            return Result<string>.Success("User berhasil dibuka dari lockout.");
+            return "User berhasil dibuka dari lockout.";
         }
         catch (Exception e)
         {
@@ -899,21 +938,33 @@ public class AuthService : IAuthService
     }
     #endregion
     
-    #region GenerateRandomToken
-    private static string GenerateRandomToken(int size = 48)
+    #region GetStaffByStoreIdAsync
+    public async Task<PagedResult<User>> GetStaffByStoreIdAsync(QueryRequest req)
     {
-        var bytes = new byte[size];
-        RandomNumberGenerator.Fill(bytes);
-        return Convert.ToBase64String(bytes).Replace("+", "-").Replace("/", "_").TrimEnd('=');
+        return await _userRepository.GetStaffByStoreIdAsync(req);
     }
     #endregion
-    
-    #region HashToken
+
+    // Helpers
+    private static string Generate6DigitCode()
+    {
+        var random = new Random();
+        return random.Next(100000, 999999).ToString();
+    }
+
+    private static string GenerateRandomToken()
+    {
+        var bytes = new byte[32];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(bytes);
+        // URL-safe base64 without padding
+        return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+    }
+
     private static string HashToken(string token)
     {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(token);
-        var hash = SHA256.HashData(bytes);
+        using var sha = SHA256.Create();
+        var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(token));
         return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
     }
-    #endregion
 }

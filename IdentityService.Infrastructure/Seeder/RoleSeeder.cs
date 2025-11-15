@@ -32,7 +32,10 @@ public static class RoleSeeder
             if (!exists)
             {
                 await db.AddAsync(role);
+                await db.SaveChangesAsync();
             }
+            
+            var newrole = await db.Set<Role>().AsNoTracking().ToListAsync();
         }
 
         await db.SaveChangesAsync();

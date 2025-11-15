@@ -1,8 +1,9 @@
+using ZivraFramework.Core.Models;
+
 namespace IdentityService.Shared.DTOs.Response.Auth;
 
-public class UserResponse
+public class UserResponse : BaseDto
 {
-    public Guid Id { get; set; }
     public required string FullName { get; set; }
     public string Username { get; set; } = string.Empty;
     public string? DisplayName { get; set; }
@@ -22,13 +23,5 @@ public class UserResponse
     public string? Rt { get; set; }
     public string? Rw { get; set; }
 
-    public DateTime CreDate { get; set; }
-    public string? CreBy { get; set; }
-    public string? CreIpAddress { get; set; }
-    public DateTime? ModDate { get; set; }
-    public string? ModBy { get; set; }
-    public string? ModIpAddress { get; set; }
-
     public IEnumerable<string> Roles { get; set; } = System.Array.Empty<string>();
 }
-

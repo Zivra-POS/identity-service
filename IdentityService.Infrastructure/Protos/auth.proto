@@ -15,12 +15,14 @@ message ValidateTokenRequest {
 
 message ValidateTokenResponse {
   bool is_valid = 1;
-  string user_id = 2;
-  string username = 3;
-  string full_name = 4;
-  string email = 5;
-  repeated string roles = 6;
-  string error_message = 7;
+  string store_id = 2;
+  string user_id = 3;
+  string username = 4;
+  string full_name = 5;
+  string email = 6;
+  repeated string roles = 7;
+  string error_message = 8;
+  int32 status_code = 9;
 }
 
 message GetUserInfoRequest {
@@ -29,10 +31,12 @@ message GetUserInfoRequest {
 
 message GetUserInfoResponse {
   bool is_valid = 1;
-  string user_id = 2;
-  string username = 3;
-  string full_name = 4;
-  string email = 5;
-  repeated string roles = 6;
-  string error_message = 7;
+  string store_id = 2;
+  string user_id = 3;
+  string username = 4;
+  string full_name = 5;
+  string email = 6;
+  repeated string roles = 7;
+  string error_message = 8;
+  int32 status_code = 9;
 }

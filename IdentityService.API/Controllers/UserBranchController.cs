@@ -27,12 +27,8 @@ public class UserBranchController : ControllerBase
         if (_currentUserService.StoreId == null)
             return Unauthorized("Store information is required");
 
-        var r = await _userBranchService.GetAllAsync(query, _currentUserService.StoreId.Value);
-        
-        if (!r.IsSuccess)
-            return StatusCode((int)r.StatusCode, r);
-
-        return Ok(r);
+        var res = await _userBranchService.GetAllAsync(query, Guid.Empty);
+        return Ok(res);
     }
     #endregion
 
@@ -40,12 +36,17 @@ public class UserBranchController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var r = await _userBranchService.GetByIdAsync(id);
-        
-        if (!r.IsSuccess)
-            return StatusCode((int)r.StatusCode, r);
+        var res = await _userBranchService.GetByIdAsync(id);
+        return Ok(res);
+    }
+    #endregion
 
-        return Ok(r);
+    #region GetByHashedId
+    [HttpGet("hashed/{hashedId}")]
+    public async Task<IActionResult> GetByHashedId(string hashedId)
+    {
+        var res = await _userBranchService.GetByHashedIdAsync(hashedId);
+        return Ok(res);
     }
     #endregion
 
@@ -53,11 +54,8 @@ public class UserBranchController : ControllerBase
     [HttpGet("user/{userId}")]
     public async Task<IActionResult> GetByUserId(Guid userId)
     {
-        var r = await _userBranchService.GetByUserIdAsync(userId);
-        
-        if (!r.IsSuccess) return StatusCode((int)r.StatusCode, r);
-
-        return Ok(r);
+        var res = await _userBranchService.GetByUserIdAsync(userId);
+        return Ok(res);
     }
     #endregion
 
@@ -65,12 +63,8 @@ public class UserBranchController : ControllerBase
     [HttpGet("branch/{branchId}")]
     public async Task<IActionResult> GetByBranchId(Guid branchId)
     {
-        var r = await _userBranchService.GetByBranchIdAsync(branchId);
-        
-        if (!r.IsSuccess)
-            return StatusCode((int)r.StatusCode, r);
-
-        return Ok(r);
+        var res = await _userBranchService.GetByBranchIdAsync(branchId);
+        return Ok(res);
     }
     #endregion
 
@@ -78,12 +72,8 @@ public class UserBranchController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] UserBranchRequest request)
     {
-        var r = await _userBranchService.CreateAsync(request);
-        
-        if (!r.IsSuccess)
-            return StatusCode((int)r.StatusCode, r);
-
-        return CreatedAtAction(nameof(GetById), new { id = r.Data!.Id }, r);
+        var res = await _userBranchService.CreateAsync(request);
+        return CreatedAtAction(nameof(GetById), new { id = res.Id }, res);
     }
     #endregion
 
@@ -91,12 +81,8 @@ public class UserBranchController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var r = await _userBranchService.DeleteAsync(id);
-        
-        if (!r.IsSuccess)
-            return StatusCode((int)r.StatusCode, r);
-
-        return Ok(r);
+        var msg = await _userBranchService.DeleteAsync(id);
+        return Ok(new { message = msg });
     }
     #endregion
 }

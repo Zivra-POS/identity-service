@@ -83,7 +83,7 @@ public static class TestDataGenerator
     {
         return new LoginRequest
         {
-            Username = username,
+            UsernameOrEmail = username,
             Password = password,
             ModDate = DateTime.UtcNow,
             ModBy = "SYSTEM",
@@ -122,10 +122,7 @@ public static class TestDataGenerator
     {
         return new SendVerifyEmailRequest
         {
-            UserId = userId,
-            FullName = Faker.Name.FullName(),
             Email = email,
-            Username = Faker.Internet.UserName(),
             IsSend = true,
             CreDate = DateTime.UtcNow,
             CreBy = "SYSTEM",

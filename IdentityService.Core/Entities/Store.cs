@@ -1,14 +1,12 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using IdentityService.Shared.Constants;
-using ZivraFramework.Core.Interfaces;
+using ZivraFramework.Core.Models;
 
 namespace IdentityService.Core.Entities;
 
-public class Store : IBaseEntity
+public class Store : BaseEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-
     [MaxLength(256)]
     public string Name { get; set; } = default!;
 
@@ -36,12 +34,6 @@ public class Store : IBaseEntity
     public string? Phone { get; set; }
     public bool IsActive { get; set; }
     public CostingMethod CostingMethod { get; set; } = CostingMethod.FIFO;
-    public DateTime CreDate { get; set; }
-    public string? CreBy { get; set; }
-    public string? CreIpAddress { get; set; }
-    public DateTime? ModDate { get; set; }
-    public string? ModBy { get; set; }
-    public string? ModIpAddress { get; set; }
 
     public ICollection<Branch> Branches { get; set; } = new List<Branch>();
     public ICollection<User> Users { get; set; } = new List<User>();

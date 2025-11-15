@@ -2,6 +2,7 @@ using Grpc.Core;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -14,13 +15,16 @@ public class GrpcAuthService : AuthenticationService.AuthenticationServiceBase
 {
     private readonly IdentityDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IUserRepository _userRepository;
 
     public GrpcAuthService(
         IdentityDbContext context,
-        IConfiguration configuration)
+        IConfiguration configuration, 
+        IUserRepository userRepository)
     {
         _context = context;
         _configuration = configuration;
+        _userRepository = userRepository;
     }
 
     public override async Task<ValidateTokenResponse> ValidateToken(ValidateTokenRequest request, ServerCallContext context)
@@ -89,7 +93,9 @@ public class GrpcAuthService : AuthenticationService.AuthenticationServiceBase
                 return new ValidateTokenResponse
                 {
                     IsValid = false,
-                    ErrorMessage = "Token tidak ditemukan."
+                    ErrorMessage = "Token tidak ditemukan.",
+                    StatusCode = 400
+                    
                 };
             }
 
@@ -98,7 +104,8 @@ public class GrpcAuthService : AuthenticationService.AuthenticationServiceBase
                 return new ValidateTokenResponse
                 {
                     IsValid = false,
-                    ErrorMessage = "Token telah dicabut."
+                    ErrorMessage = "Token telah dicabut.",
+                    StatusCode = 401
                 };
             }
 
@@ -107,7 +114,8 @@ public class GrpcAuthService : AuthenticationService.AuthenticationServiceBase
                 return new ValidateTokenResponse
                 {
                     IsValid = false,
-                    ErrorMessage = "Token telah kadaluarsa."
+                    ErrorMessage = "Token telah kadaluarsa.",
+                    StatusCode = 401
                 };
             }
 
@@ -129,21 +137,37 @@ public class GrpcAuthService : AuthenticationService.AuthenticationServiceBase
 
             var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
 
-            var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
-            var username = principal.FindFirst(ClaimTypes.Name)?.Value ?? string.Empty;
-            var email = principal.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty;
-            var fullName = principal.FindFirst("FullName")?.Value ?? string.Empty;
-            
+            var storeId = principal.FindFirst("store_id")?.Value;
+            var userId = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? string.Empty;
+            var username = principal.FindFirst(JwtRegisteredClaimNames.UniqueName)?.Value ?? string.Empty;
+            var email = principal.FindFirst(JwtRegisteredClaimNames.Email)?.Value ?? string.Empty;
+            var fullName = principal.FindFirst(JwtRegisteredClaimNames.Name)?.Value ?? string.Empty;
+
             var roles = principal.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
+            
+            _ = Guid.TryParse(userId, out var parsedUserId) ? parsedUserId : (Guid?)null;
+            _ = Guid.TryParse(storeId, out var parsedStoreId) ? parsedStoreId : (Guid?)null;
+
+            if (!await _userRepository.IsUserAccessStoreAsync(parsedUserId, parsedStoreId))
+            {
+                return new ValidateTokenResponse
+                {
+                    IsValid = false,
+                    ErrorMessage = "Tidak memiliki akses ke Toko.",
+                    StatusCode = 403
+                };
+            }
 
             return new ValidateTokenResponse
             {
                 IsValid = true,
+                StoreId = storeId,
                 UserId = userId,
                 Username = username,
                 FullName = fullName,
                 Email = email,
-                Roles = { roles }
+                Roles = { roles },
+                StatusCode = 200
             };
         }
         catch (SecurityTokenException)

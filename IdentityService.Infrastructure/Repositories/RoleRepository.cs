@@ -32,4 +32,11 @@ public class RoleRepository : GenericRepository<Role>, IRoleRepository
             .FirstOrDefaultAsync(r => r.NormalizedName == name, ct);
     }
     #endregion
+
+    #region GetByHashedIdAsync
+    public async Task<Role?> GetByHashedIdAsync(string hashedId, CancellationToken ct = default)
+    {
+        return await _set.FirstOrDefaultAsync(r => r.HashedId == hashedId, ct);
+    }
+    #endregion
 }

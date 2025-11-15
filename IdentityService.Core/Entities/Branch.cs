@@ -1,13 +1,11 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using ZivraFramework.Core.Interfaces;
+using ZivraFramework.Core.Models;
 
 namespace IdentityService.Core.Entities;
 
-public class Branch : IBaseEntity
+public class Branch : BaseEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-
     public Guid StoreId { get; set; }
 
     [MaxLength(256)]
@@ -38,13 +36,6 @@ public class Branch : IBaseEntity
     public string? Phone { get; set; }
 
     public bool IsActive { get; set; } = true;
-
-    public DateTime CreDate { get; set; }
-    public string? CreBy { get; set; }
-    public string? CreIpAddress { get; set; }
-    public DateTime? ModDate { get; set; }
-    public string? ModBy { get; set; }
-    public string? ModIpAddress { get; set; }
 
     public Store? Store { get; set; }
     public ICollection<UserBranch> UserBranches { get; set; } = new List<UserBranch>();

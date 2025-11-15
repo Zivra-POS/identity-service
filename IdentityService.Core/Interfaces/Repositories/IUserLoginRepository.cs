@@ -6,4 +6,3 @@ namespace IdentityService.Core.Interfaces.Repositories;
 public interface IUserLoginRepository : IGenericRepository<UserLogin>
 {
 }
-

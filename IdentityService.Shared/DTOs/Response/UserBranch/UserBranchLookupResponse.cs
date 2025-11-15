@@ -1,8 +1,9 @@
+using ZivraFramework.Core.Models;
+
 namespace IdentityService.Shared.DTOs.Response.UserBranch;
 
-public class UserBranchLookupResponse
+public class UserBranchLookupResponse : BaseDto
 {
-    public Guid Id { get; set; }
     public Guid UserId { get; set; }
     public Guid BranchId { get; set; }
     public string? UserName { get; set; }

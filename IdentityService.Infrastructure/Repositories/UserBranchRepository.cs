@@ -43,7 +43,7 @@ public class UserBranchRepository : GenericRepository<UserBranch>, IUserBranchRe
 
         return new PagedResult<UserBranch>
         {
-            Total = total,
+            TotalCount = total,
             Items = items
         };
     }
@@ -92,6 +92,16 @@ public class UserBranchRepository : GenericRepository<UserBranch>, IUserBranchRe
             .OrderBy(ub => ub.User!.Username)
             .ThenBy(ub => ub.Branch!.Name)
             .ToListAsync(ct);
+    }
+    #endregion
+
+    #region GetByHashedIdAsync
+    public async Task<UserBranch?> GetByHashedIdAsync(string hashedId, CancellationToken ct = default)
+    {
+        return await _set.AsNoTracking()
+            .Include(ub => ub.User)
+            .Include(ub => ub.Branch)
+            .FirstOrDefaultAsync(ub => ub.HashedId == hashedId, ct);
     }
     #endregion
 }

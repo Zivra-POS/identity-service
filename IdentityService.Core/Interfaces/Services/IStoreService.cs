@@ -1,15 +1,19 @@
+using ZivraFramework.Core.Models;
 using IdentityService.Shared.DTOs.Request.Store;
 using IdentityService.Shared.DTOs.Response.Store;
-using IdentityService.Shared.Response;
-using ZivraFramework.Core.Models;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System;
 
-namespace IdentityService.Core.Interfaces.Services;
-
-public interface IStoreService
+namespace IdentityService.Core.Interfaces.Services
 {
-    Task<Result<IEnumerable<StoreResponse>>> GetAllAsync(PagedQuery query);
-    Task<Result<StoreResponse>> GetByIdAsync(Guid id);
-    Task<Result<StoreResponse>> CreateAsync(StoreRequest req);
-    Task<Result<StoreResponse>> UpdateAsync(StoreRequest req);
-    Task<Result<string>> DeleteAsync(Guid id);
+    public interface IStoreService
+    {
+        Task<IEnumerable<StoreResponse>> GetAllAsync(PagedQuery query);
+        Task<StoreResponse> GetByIdAsync(Guid id);
+        Task<StoreResponse> CreateAsync(StoreRequest req);
+        Task<StoreResponse> UpdateAsync(StoreRequest req);
+        Task<string> DeleteAsync(Guid id);
+        Task<StoreResponse> GetByHashedIdAsync(string hashedId);
+    }
 }

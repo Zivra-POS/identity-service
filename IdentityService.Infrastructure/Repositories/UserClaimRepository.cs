@@ -20,4 +20,12 @@ public class UserClaimRepository : GenericRepository<UserClaim>, IUserClaimRepos
             .ToListAsync(ct);
     }
     #endregion
+
+    #region GetByHashedIdAsync
+    public async Task<UserClaim?> GetByHashedIdAsync(string hashedId, CancellationToken ct = default)
+    {
+        return await _set.AsNoTracking()
+            .FirstOrDefaultAsync(uc => uc.HashedId == hashedId, ct);
+    }
+    #endregion
 }

@@ -1,9 +1,10 @@
+using ZivraFramework.Core.Models;
+
 namespace IdentityService.Shared.DTOs.Request.Branch;
 
-public class BranchRequest
+public class BranchRequest : BaseDto
 {
-    public Guid? Id { get; set; }
-    public Guid StoreId { get; set; }
+    public string? StoreId { get; set; }
     public string Name { get; set; } = default!;
     public string? Code { get; set; }
     public string? Address { get; set; }
@@ -13,9 +14,4 @@ public class BranchRequest
     public string? Rt { get; set; }
     public string? Rw { get; set; }
     public string? Phone { get; set; }
-
-    public DateTime CreDate { get; set; }
-    public string? CreBy { get; set; }
-    public string? CreIpAddress { get; set; }
 }
-

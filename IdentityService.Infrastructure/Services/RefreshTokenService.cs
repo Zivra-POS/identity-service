@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using IdentityService.Core.Entities;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
@@ -20,6 +21,14 @@ public class RefreshTokenService : IRefreshTokenService
         _unitOfWork = unitOfWork;
         _config = config;
     }
+    
+    #region GetByRefreshTokenHashAsync
+    public async Task<RefreshToken?> GetByRefreshTokenHashAsync(string rawToken, CancellationToken ct = default)
+    {
+        var hashed = HashToken(rawToken);
+        return await _refreshRepo.GetByTokenHashAsync(hashed, ct);
+    }
+    #endregion
 
     #region GenerateAndStoreRefreshTokenAsync
     public async Task<string> GenerateAndStoreRefreshTokenAsync(Guid userId, Guid accessTokenId, CancellationToken ct = default)
@@ -105,6 +114,24 @@ public class RefreshTokenService : IRefreshTokenService
         await _unitOfWork.SaveChangesAsync(ct);
 
         return newRaw;
+    }
+    #endregion
+
+    #region RevokeAllRefreshTokensForUserAsync
+    public async Task RevokeAllRefreshTokensForUserAsync(Guid userId, string? revokedByIp = null, CancellationToken ct = default)
+    {
+        var tokens = await _refreshRepo.GetActiveByUserIdAsync(userId, ct);
+        if (tokens == null) return;
+
+        foreach (var rt in tokens)
+        {
+            rt.Revoked = DateTime.UtcNow;
+            rt.RevokedByIp = revokedByIp;
+            rt.ModDate = DateTime.UtcNow;
+            await _refreshRepo.RevokeAsync(rt, ct);
+        }
+
+        await _unitOfWork.SaveChangesAsync(ct);
     }
     #endregion
 

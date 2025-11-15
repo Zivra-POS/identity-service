@@ -1,14 +1,18 @@
 using IdentityService.Core.Entities;
-using IdentityService.Core.Exceptions;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.UserBranch;
 using IdentityService.Shared.DTOs.Request.UserBranch;
 using IdentityService.Shared.DTOs.Response.UserBranch;
 using IdentityService.Shared.Response;
+using ZivraFramework.Core.API.Exception;
 using ZivraFramework.Core.Interfaces;
 using ZivraFramework.Core.Models;
 using ZivraFramework.Core.Utils;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System;
 
 namespace IdentityService.Infrastructure.Services;
 
@@ -29,52 +33,62 @@ public class UserBranchService : IUserBranchService
     }
 
     #region GetAllAsync
-    public async Task<Result<IEnumerable<UserBranchResponse>>> GetAllAsync(PagedQuery query, Guid storeId)
+    public async Task<IEnumerable<UserBranchResponse>> GetAllAsync(PagedQuery query, Guid storeId)
     {
         var pagedResult = await _userBranchRepository.GetPagedByStoreAsync(query, storeId);
         var response = pagedResult.Items.Select(UserBranchMapper.ToResponse);
         
         Logger.Info("Berhasil mengambil data user branch");
-        return Result<IEnumerable<UserBranchResponse>>.Success(response);
+        return response;
     }
     #endregion
 
     #region GetByIdAsync
-    public async Task<Result<UserBranchResponse>> GetByIdAsync(Guid id)
+    public async Task<UserBranchResponse> GetByIdAsync(Guid id)
     {
         var userBranch = await _userBranchRepository.GetByIdAsync(id);
         if (userBranch == null)
             throw new NotFoundException("User branch tidak ditemukan");
             
         Logger.Info("Berhasil mengambil data user branch");
-        return Result<UserBranchResponse>.Success(UserBranchMapper.ToResponse(userBranch));
+        return UserBranchMapper.ToResponse(userBranch);
+    }
+    #endregion
+
+    #region GetByHashedIdAsync
+    public async Task<UserBranchResponse> GetByHashedIdAsync(string hashedId)
+    {
+        var ub = await _userBranchRepository.GetByHashedIdAsync(hashedId);
+        if (ub == null)
+            throw new NotFoundException("User branch tidak ditemukan");
+        return UserBranchMapper.ToResponse(ub);
     }
     #endregion
 
     #region GetByUserIdAsync
-    public async Task<Result<IEnumerable<UserBranchResponse>>> GetByUserIdAsync(Guid userId)
+    public async Task<IEnumerable<UserBranchResponse>> GetByUserIdAsync(Guid userId)
     {
         var userBranches = await _userBranchRepository.GetByUserIdAsync(userId);
         var resp = userBranches.Select(UserBranchMapper.ToResponse);
         
         Logger.Info("Berhasil mengambil data user branch");
-        return Result<IEnumerable<UserBranchResponse>>.Success(resp);
+        return resp;
     }
     #endregion
 
     #region GetByBranchIdAsync
-    public async Task<Result<IEnumerable<UserBranchResponse>>> GetByBranchIdAsync(Guid branchId)
+    public async Task<IEnumerable<UserBranchResponse>> GetByBranchIdAsync(Guid branchId)
     {
         var userBranches = await _userBranchRepository.GetByBranchIdAsync(branchId);
         var resp = userBranches.Select(UserBranchMapper.ToResponse);
         
         Logger.Info("Berhasil mengambil user branch berdasarkan branch id");
-        return Result<IEnumerable<UserBranchResponse>>.Success(resp);
+        return resp;
     }
     #endregion
 
     #region CreateAsync
-    public async Task<Result<UserBranchResponse>> CreateAsync(UserBranchRequest req)
+    public async Task<UserBranchResponse> CreateAsync(UserBranchRequest req)
     {
         var branch = await _branchRepository.GetByIdAsync(req.BranchId);
         if (branch == null)
@@ -90,7 +104,7 @@ public class UserBranchService : IUserBranchService
                 UserId = req.UserId,
                 BranchId = req.BranchId,
                 IsPrimary = req.IsPrimary,
-                CreDate = req.CreDate,
+                CreDate = req.CreDate ?? DateTime.UtcNow,
                 CreBy = req.CreBy,
                 CreIpAddress = req.CreIpAddress
             };
@@ -100,12 +114,12 @@ public class UserBranchService : IUserBranchService
         
         Logger.Info("Berhasil menambah data branch ke user");
         var resp = await _userBranchRepository.GetByIdAsync(userBranch.Id);
-        return Result<UserBranchResponse>.Success(UserBranchMapper.ToResponse(resp!));
+        return UserBranchMapper.ToResponse(resp!);
     }
     #endregion
 
     #region DeleteAsync
-    public async Task<Result<string>> DeleteAsync(Guid id)
+    public async Task<string> DeleteAsync(Guid id)
     {
         var userBranch = await _userBranchRepository.GetByIdAsync(id);
         if (userBranch == null)
@@ -115,18 +129,18 @@ public class UserBranchService : IUserBranchService
         await _unitOfWork.SaveChangesAsync();
         
         Logger.Info("Berhasil mengapus data user branch");
-        return Result<string>.Success("User branch deleted successfully");
+        return "User branch deleted successfully";
     }
     #endregion
 
     #region GetRowsForLookupAsync
-    public async Task<Result<IEnumerable<UserBranchLookupResponse>>> GetRowsForLookupAsync(Guid storeId)
+    public async Task<IEnumerable<UserBranchLookupResponse>> GetRowsForLookupAsync(Guid storeId)
     {
         var userBranches = await _userBranchRepository.GetRowsForLookupAsync(storeId);
         var response = userBranches.Select(UserBranchMapper.ToLookupResponse);
         
         Logger.Info("Berhasil mengambil data user branch untuk lookup");
-        return Result<IEnumerable<UserBranchLookupResponse>>.Success(response);
+        return response;
     }
     #endregion
 }

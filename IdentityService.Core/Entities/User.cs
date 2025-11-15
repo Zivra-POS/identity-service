@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using ZivraFramework.Core.Interfaces;
+using System.ComponentModel.DataAnnotations.Schema;
+using ZivraFramework.Core.Models;
+using ZivraFramework.Core.Utils;
 
 namespace IdentityService.Core.Entities;
 
-public class User : IBaseEntity
+public class User : BaseEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public string? ProfileUrl { get; set; }
     [MaxLength(50)]
     public Guid? StoreId { get; set; }
@@ -64,17 +65,9 @@ public class User : IBaseEntity
     public bool IsActive { get; set; } = true;
     
     public bool IsFirstLogin { get; set; } = false;
-
-    public DateTime CreDate { get; set; }
-    [MaxLength(100)]
-    public string? CreBy { get; set; }
-    [MaxLength(64)]
-    public string? CreIpAddress { get; set; }
-    public DateTime? ModDate { get; set; }
-    [MaxLength(100)]
-    public string? ModBy { get; set; }
-    [MaxLength(64)]
-    public string? ModIpAddress { get; set; }
+    
+    [NotMapped]
+    public string? HashedStoreId { get; set; }
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
     public ICollection<UserClaim> Claims { get; set; } = new List<UserClaim>();

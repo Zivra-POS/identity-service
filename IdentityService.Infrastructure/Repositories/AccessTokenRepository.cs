@@ -47,4 +47,14 @@ public class AccessTokenRepository : GenericRepository<AccessToken>, IAccessToke
             .FirstOrDefaultAsync(t => t.Id == id, ct);
     }
     #endregion
+
+    #region GetActiveByUserIdAsync
+    public async Task<IEnumerable<AccessToken>> GetActiveByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await _set
+            .AsNoTracking()
+            .Where(t => t.UserId == userId && t.Revoked == null && t.Expires > DateTime.UtcNow)
+            .ToListAsync(ct);
+    }
+    #endregion
 }

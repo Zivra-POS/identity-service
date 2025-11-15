@@ -47,14 +47,7 @@ public class CurrentUserService : ICurrentUserService
          ?? User?.Claims.Where(c => string.Equals(c.Type, "role", StringComparison.OrdinalIgnoreCase)).Select(c => c.Value)
          ?? Enumerable.Empty<string>()).ToList();
 
-    public Guid? StoreId
-    {
-        get
-        {
-            var storeId = User?.FindFirstValue("store_id") ?? User?.FindFirstValue("StoreId");
-            return Guid.TryParse(storeId, out var guid) ? guid : null;
-        }
-    }
+    public string? StoreId => User?.FindFirstValue("store_id") ?? User?.FindFirstValue("StoreId");
 
     public bool IsAuthenticated => User?.Identity?.IsAuthenticated ?? false;
 }

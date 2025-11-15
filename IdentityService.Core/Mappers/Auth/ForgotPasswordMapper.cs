@@ -1,5 +1,6 @@
 using IdentityService.Core.Entities;
 using IdentityService.Shared.DTOs.Response;
+using IdentityService.Shared.DTOs.Response.Auth;
 
 namespace IdentityService.Core.Mappers;
 

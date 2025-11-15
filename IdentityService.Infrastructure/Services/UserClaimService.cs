@@ -1,11 +1,15 @@
 using IdentityService.Core.Entities;
-using IdentityService.Core.Exceptions;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.User;
-using IdentityService.Shared.DTOs.UserClaim;
-using IdentityService.Shared.Response;
+using IdentityService.Shared.DTOs.Request.User;
+using IdentityService.Shared.DTOs.Response.User;
+using ZivraFramework.Core.API.Exception;
 using ZivraFramework.Core.Interfaces;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
+using System;
 
 namespace IdentityService.Infrastructure.Services;
 
@@ -23,27 +27,38 @@ public class UserClaimService : IUserClaimService
     }
 
     #region GetByUserIdAsync
-    public async Task<Result<IEnumerable<UserClaimResponse>>> GetByUserIdAsync(Guid userId)
+    public async Task<IEnumerable<UserClaimResponse>> GetByUserIdAsync(Guid userId)
     {
         var rows = await _ucRepo.GetByUserIdAsync(userId);
         var res = rows.Select(UserClaimMapper.ToResponse);
-        return Result<IEnumerable<UserClaimResponse>>.Success(res);
+        return res;
     }
     #endregion
 
     #region GetByIdAsync
-    public async Task<Result<UserClaimResponse>> GetByIdAsync(Guid id)
+    public async Task<UserClaimResponse> GetByIdAsync(Guid id)
     {
         var uc = await _ucRepo.GetByIdAsync(id);
         if (uc == null)
             throw new NotFoundException("User Claim tidak ditemukan.");
 
-        return Result<UserClaimResponse>.Success(UserClaimMapper.ToResponse(uc));
+        return UserClaimMapper.ToResponse(uc);
+    }
+    #endregion
+
+    #region GetByHashedIdAsync
+    public async Task<UserClaimResponse> GetByHashedIdAsync(string hashedId)
+    {
+        var uc = await _ucRepo.GetByHashedIdAsync(hashedId);
+        if (uc == null)
+            throw new NotFoundException("User Claim tidak ditemukan.");
+
+        return UserClaimMapper.ToResponse(uc);
     }
     #endregion
 
     #region CreateAsync
-    public async Task<Result<UserClaimResponse>> CreateAsync(UserClaimRequest req)
+    public async Task<UserClaimResponse> CreateAsync(UserClaimRequest req)
     {
         if (req.UserId == Guid.Empty)
             throw new ValidationException("User Id wajib diisi.");
@@ -54,7 +69,7 @@ public class UserClaimService : IUserClaimService
 
         var uc = new UserClaim
         {
-            Id = req.Id ?? Guid.NewGuid(),
+            Id = req.Id ?? Guid.Empty,
             UserId = req.UserId,
             ClaimType = req.ClaimType,
             ClaimValue = req.ClaimValue,
@@ -64,17 +79,17 @@ public class UserClaimService : IUserClaimService
         await _ucRepo.AddAsync(uc);
         await _unitOfWork.SaveChangesAsync();
 
-        return Result<UserClaimResponse>.Success(UserClaimMapper.ToResponse(uc));
+        return UserClaimMapper.ToResponse(uc);
     }
     #endregion
 
     #region UpdateAsync
-    public async Task<Result<UserClaimResponse>> UpdateAsync(UserClaimRequest req)
+    public async Task<UserClaimResponse> UpdateAsync(UserClaimRequest req)
     {
-        if (req.Id == null || req.Id == Guid.Empty)
+        if (req.Id == Guid.Empty)
             throw new ValidationException("Id wajib diisi.");
 
-        var uc = await _ucRepo.GetByIdAsync(req.Id.Value);
+        var uc = await _ucRepo.GetByIdAsync(req.Id);
         if (uc == null)
             throw new NotFoundException("User Claim tidak ditemukan.");
 
@@ -85,12 +100,12 @@ public class UserClaimService : IUserClaimService
         _ucRepo.Update(uc);
         await _unitOfWork.SaveChangesAsync();
 
-        return Result<UserClaimResponse>.Success(UserClaimMapper.ToResponse(uc));
+        return UserClaimMapper.ToResponse(uc);
     }
     #endregion
 
     #region DeleteAsync
-    public async Task<Result<string>> DeleteAsync(Guid id)
+    public async Task<string> DeleteAsync(Guid id)
     {
         var uc = await _ucRepo.GetByIdAsync(id);
         if (uc == null)
@@ -99,7 +114,18 @@ public class UserClaimService : IUserClaimService
         _ucRepo.Delete(uc);
         await _unitOfWork.SaveChangesAsync();
 
-        return Result<string>.Success("Deleted");
+        return "Deleted";
     }
     #endregion
+
+    // Explicit interface implementations to avoid type identity ambiguities
+    async Task<UserClaimResponse> IdentityService.Core.Interfaces.Services.IUserClaimService.CreateAsync(UserClaimRequest req)
+    {
+        return await CreateAsync(req);
+    }
+
+    async Task<UserClaimResponse> IdentityService.Core.Interfaces.Services.IUserClaimService.UpdateAsync(UserClaimRequest req)
+    {
+        return await UpdateAsync(req);
+    }
 }

@@ -12,11 +12,15 @@ public class Result<T>
     [JsonInclude]
     public T? Data { get; private set; }
     [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<string>? Errors { get; private set; }
+
+    [JsonInclude]
+    [JsonPropertyName("errors")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public object? ErrorsObject { get; private set; }
     [JsonInclude]
     public HttpStatusCode StatusCode { get; private set; }
-
-    public Result() { }
 
     public static Result<T> Success(T data, string message = "Success", HttpStatusCode code = HttpStatusCode.OK)
         => new()
@@ -32,6 +36,15 @@ public class Result<T>
         {
             IsSuccess = false,
             Errors = errors,
+            Message = message,
+            StatusCode = code
+        };
+
+    public static Result<T> FailureWithErrorsObject(object errorsObject, string message = "Failed", HttpStatusCode code = HttpStatusCode.BadRequest)
+        => new()
+        {
+            IsSuccess = false,
+            ErrorsObject = errorsObject,
             Message = message,
             StatusCode = code
         };

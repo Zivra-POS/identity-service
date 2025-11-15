@@ -1,8 +1,9 @@
+using ZivraFramework.Core.Models;
+
 namespace IdentityService.Shared.DTOs.Response.Branch;
 
-public class BranchResponse
+public class BranchResponse : BaseDto
 {
-    public Guid Id { get; set; }
     public Guid StoreId { get; set; }
     public string Name { get; set; } = default!;
     public string? Code { get; set; }
@@ -14,10 +15,4 @@ public class BranchResponse
     public string? Rw { get; set; }
     public string? Phone { get; set; }
     public bool IsActive { get; set; }
-
-    public DateTime CreDate { get; set; }
-    public string? CreBy { get; set; }
-    public string? CreIpAddress { get; set; }
-    public DateTime? ModDate { get; set; }
 }
-

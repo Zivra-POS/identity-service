@@ -6,7 +6,10 @@ using IdentityService.Core.Interfaces.Services;
 using IdentityService.Infrastructure.Repositories;
 using IdentityService.Infrastructure.Seeder;
 using IdentityService.Infrastructure.Services;
+using ZivraFramework.Core.Interceptors;
+using ZivraFramework.Core.Interfaces;
 using ZivraFramework.EFCore.Extentions;
+using ZivraFramework.EFCore.Repositories;
 
 namespace IdentityService.Infrastructure.Persistence;
 
@@ -14,12 +17,15 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
-        services.AddZivraEfCore<IdentityDbContext>(options =>
+        services.AddDbContext<IdentityDbContext>((sp, options) =>
         {
             options.UseNpgsql(config.GetConnectionString("DefaultConnection"));
+            options.AddInterceptors(sp.GetRequiredService<BaseEntityInterceptor>());
             options.EnableSensitiveDataLogging(false);
             options.LogTo(_ => { }, Microsoft.Extensions.Logging.LogLevel.None);
         });
+        
+        services.AddScoped<IUnitOfWork, UnitOfWork<IdentityDbContext>>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
@@ -50,12 +56,6 @@ public static class DependencyInjection
         
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
-
-        using (var scope = services.BuildServiceProvider().CreateScope())
-        {
-            var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-            RoleSeeder.SeedAsync(db).GetAwaiter().GetResult();
-        }
         
         return services;
     }

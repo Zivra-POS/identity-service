@@ -2,6 +2,8 @@ using IdentityService.Core.Entities;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using ZivraFramework.Core.Filtering;
+using ZivraFramework.Core.Filtering.Entities;
 using ZivraFramework.Core.Models;
 using ZivraFramework.EFCore.Repositories;
 
@@ -38,9 +40,42 @@ public class BranchRepository : GenericRepository<Branch>, IBranchRepository
 
         return new PagedResult<Branch>
         {
-            Total = total,
+            TotalCount = total,
             Items = items
         };
+    }
+    #endregion
+    
+    #region GetAllByStoreIdAsync
+    public async Task<PagedResult<Branch>> GetAllByStoreIdAsync(QueryRequest req, Guid storeId, CancellationToken ct = default)
+    {
+        var q = _set.AsNoTracking().ApplyFiltering(req);
+
+        if (req?.Sorts == null || !req.Sorts.Any())
+        {
+            q = q.OrderByDescending(b => b.CreDate);
+        }
+
+        var count = await q.CountAsync(ct);
+
+        var branches = await q
+            .Where(b => b.StoreId == storeId)
+            .Skip((req.Page - 1) * req.PageSize)
+            .Take(req.PageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<Branch>()
+        {
+            Items = branches,
+            TotalCount = count,
+        };
+    }
+    #endregion
+
+    #region GetByHashedIdAsync
+    public async Task<Branch?> GetByHashedIdAsync(string hashedId, CancellationToken ct = default)
+    {
+        return await _set.FirstOrDefaultAsync(b => b.HashedId == hashedId, ct);
     }
     #endregion
 }

@@ -8,6 +8,7 @@ public static class StoreMapper
     {
         return new StoreResponse
         {
+            HashedId = s.HashedId,
             Id = s.Id,
             Name = s.Name,
             Code = s.Code,
@@ -25,7 +26,8 @@ public static class StoreMapper
             CreIpAddress = s.CreIpAddress,
             ModDate = s.ModDate,
             ModBy = s.ModBy,
-            ModIpAddress = s.ModIpAddress
+            ModIpAddress = s.ModIpAddress,
+            
         };
     }
 }

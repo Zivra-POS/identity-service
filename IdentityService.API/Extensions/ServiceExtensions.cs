@@ -1,9 +1,9 @@
-using IdentityService.API.Middleware;
 using IdentityService.API.Filters;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;
-using System.Reflection;
+using ZivraFramework.Core.API.Filters;
+using ZivraFramework.Core.API.Middleware;
 
 namespace IdentityService.API.Extensions;
 

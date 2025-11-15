@@ -9,6 +9,7 @@ public static class BranchMapper
         return new BranchResponse
         {
             Id = b.Id,
+            HashedId = b.HashedId,
             StoreId = b.StoreId,
             Name = b.Name,
             Code = b.Code,

@@ -1,11 +1,10 @@
 using IdentityService.Core.Entities;
-using IdentityService.Core.Exceptions;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Core.Mappers.Role;
 using IdentityService.Shared.DTOs.Request.Role;
 using IdentityService.Shared.DTOs.Response.Role;
-using IdentityService.Shared.Response;
+using ZivraFramework.Core.API.Exception;
 using ZivraFramework.Core.Interfaces;
 using ZivraFramework.Core.Models;
 
@@ -23,28 +22,38 @@ public class RoleService : IRoleService
     }
 
     #region GetAll
-    public async Task<Result<IEnumerable<RoleResponse>>> GetAllAsync(PagedQuery query)
+    public async Task<IEnumerable<RoleResponse>> GetAllAsync(PagedQuery query)
     {
         var paged = await _roleRepo.GetPagedAsync(query);
 
         var resList = paged.Items.Select(item => RoleMapper.ToResponse(item)).ToList();
 
-        return Result<IEnumerable<RoleResponse>>.Success(resList);
+        return resList;
     }
     #endregion
 
     #region GetById
-    public async Task<Result<RoleResponse>> GetByIdAsync(Guid id)
+    public async Task<RoleResponse> GetByIdAsync(Guid id)
     {
         var r = await _roleRepo.GetByIdAsync(id);
         if (r == null) 
             throw new NotFoundException("Role tidak ditemukan.");
-        return Result<RoleResponse>.Success(RoleMapper.ToResponse(r));
+        return RoleMapper.ToResponse(r);
+    }
+    #endregion
+
+    #region GetByHashedId
+    public async Task<RoleResponse> GetByHashedIdAsync(string hashedId)
+    {
+        var r = await _roleRepo.GetByHashedIdAsync(hashedId);
+        if (r == null)
+            throw new NotFoundException("Role tidak ditemukan.");
+        return RoleMapper.ToResponse(r);
     }
     #endregion
 
     #region Create
-    public async Task<Result<RoleResponse>> CreateAsync(RoleRequest req)
+    public async Task<RoleResponse> CreateAsync(RoleRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.Name))
             throw new ValidationException("Nama role harus diisi.");
@@ -55,11 +64,11 @@ public class RoleService : IRoleService
 
         var role = new Role
         {
-            Id = req.Id ?? Guid.NewGuid(),
+            Id = Guid.NewGuid(),
             Name = req.Name,
             NormalizedName = req.Name.ToUpperInvariant(),
             Description = req.Description,
-            CreDate = req.CreDate,
+            CreDate = req.CreDate ?? DateTime.UtcNow,
             CreBy = req.CreBy,
             CreIpAddress = req.CreIpAddress
         };
@@ -67,17 +76,17 @@ public class RoleService : IRoleService
         await _roleRepo.AddAsync(role);
         await _unitOfWork.SaveChangesAsync();
 
-        return Result<RoleResponse>.Success(RoleMapper.ToResponse(role));
+        return RoleMapper.ToResponse(role);
     }
     #endregion
 
     #region Update
-    public async Task<Result<RoleResponse>> UpdateAsync(RoleRequest req)
+    public async Task<RoleResponse> UpdateAsync(RoleRequest req)
     {
-        if (req.Id == null || req.Id == Guid.Empty)
+        if (req.Id == Guid.Empty)
             throw new ValidationException("Role Id wajib diisi.");
 
-        var r = await _roleRepo.GetByIdAsync(req.Id.Value);
+        var r = await _roleRepo.GetByIdAsync(req.Id);
         if (r == null) 
             throw new NotFoundException("Role tidak ditemukan.");
 
@@ -96,12 +105,12 @@ public class RoleService : IRoleService
         _roleRepo.Update(r);
         await _unitOfWork.SaveChangesAsync();
 
-        return Result<RoleResponse>.Success(RoleMapper.ToResponse(r));
+        return RoleMapper.ToResponse(r);
     }
     #endregion
 
     #region Delete
-    public async Task<Result<string>> DeleteAsync(Guid id)
+    public async Task<string> DeleteAsync(Guid id)
     {
         var r = await _roleRepo.GetByIdAsync(id);
         if (r == null) 
@@ -110,7 +119,7 @@ public class RoleService : IRoleService
         _roleRepo.Delete(r);
         await _unitOfWork.SaveChangesAsync();
 
-        return Result<string>.Success("Deleted");
+        return "Deleted";
     }
     #endregion
 }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using IdentityService.Core.Interfaces.Services;
-using IdentityService.Shared.DTOs.UserClaim;
+using IdentityService.Shared.DTOs.Request.User;
 
 namespace IdentityService.API.Controllers;
 
@@ -19,8 +20,8 @@ public class UserClaimController : ControllerBase
     [HttpGet("user/{userId:guid}")]
     public async Task<IActionResult> GetByUser(Guid userId)
     {
-        var r = await _service.GetByUserIdAsync(userId);
-        return StatusCode((int)r.StatusCode, r);
+        var res = await _service.GetByUserIdAsync(userId);
+        return Ok(res);
     }
     #endregion
 
@@ -28,8 +29,17 @@ public class UserClaimController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var r = await _service.GetByIdAsync(id);
-        return StatusCode((int)r.StatusCode, r);
+        var res = await _service.GetByIdAsync(id);
+        return Ok(res);
+    }
+    #endregion
+
+    #region GetByHashedId
+    [HttpGet("hashed/{hashedId}")]
+    public async Task<IActionResult> GetByHashedId(string hashedId)
+    {
+        var res = await _service.GetByHashedIdAsync(hashedId);
+        return Ok(res);
     }
     #endregion
 
@@ -37,8 +47,8 @@ public class UserClaimController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] UserClaimRequest req)
     {
-        var r = await _service.CreateAsync(req);
-        return StatusCode((int)r.StatusCode, r);
+        var res = await _service.CreateAsync(req);
+        return StatusCode(StatusCodes.Status201Created, res);
     }
     #endregion
 
@@ -46,8 +56,8 @@ public class UserClaimController : ControllerBase
     [HttpPut]
     public async Task<IActionResult> Update([FromBody] UserClaimRequest req)
     {
-        var r = await _service.UpdateAsync(req);
-        return StatusCode((int)r.StatusCode, r);
+        var res = await _service.UpdateAsync(req);
+        return Ok(res);
     }
     #endregion
 
@@ -55,9 +65,8 @@ public class UserClaimController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var r = await _service.DeleteAsync(id);
-        return StatusCode((int)r.StatusCode, r);
+        var msg = await _service.DeleteAsync(id);
+        return Ok(new { message = msg });
     }
     #endregion
 }
-

@@ -36,6 +36,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
             e.Property(x => x.FullName).HasMaxLength(512);
             e.HasIndex(x => x.NormalizedUsername).IsUnique();
             e.HasIndex(x => x.NormalizedEmail);
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.Property(x => x.Username).IsRequired().HasMaxLength(100);
             e.Property(x => x.NormalizedUsername).IsRequired().HasMaxLength(100);
             e.Property(x => x.Email).IsRequired().HasMaxLength(256);
@@ -57,10 +59,21 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
             e.Property(x => x.Address).HasMaxLength(1000);
         });
 
+        // -------------------- Role
+        b.Entity<Role>(e =>
+        {
+            e.ToTable("role");
+            e.Property(r => r.Name).IsRequired().HasMaxLength(256);
+            e.Property(r => r.NormalizedName).IsRequired().HasMaxLength(256);
+            e.HasIndex(r => r.HashedId).IsUnique();
+        });
+        
         // -------------------- Store
         b.Entity<Store>(e =>
         {
             e.ToTable("store");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.Property(x => x.Name).IsRequired().HasMaxLength(256);
             e.Property(x => x.Code).HasMaxLength(100);
             e.Property(x => x.Address).HasMaxLength(512);
@@ -76,6 +89,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<Branch>(e =>
         {
             e.ToTable("branch");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => x.Code);
             e.Property(x => x.Name).IsRequired().HasMaxLength(256);
             e.Property(x => x.Code).HasMaxLength(100);
@@ -97,6 +112,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<UserBranch>(e =>
         {
             e.ToTable("user_branch");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => new { x.UserId, x.BranchId }).IsUnique();
             e.Property(x => x.IsPrimary);
 
@@ -132,6 +149,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<UserClaim>(e =>
         {
             e.ToTable("user_claim");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => x.UserId);
             e.Property(x => x.ClaimType).IsRequired().HasMaxLength(200);
             e.Property(x => x.ClaimValue).IsRequired().HasMaxLength(2000);
@@ -145,6 +164,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<RoleClaim>(e =>
         {
             e.ToTable("role_claim");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => x.RoleId);
             e.Property(x => x.ClaimType).IsRequired().HasMaxLength(200);
             e.Property(x => x.ClaimValue).IsRequired().HasMaxLength(2000);
@@ -159,6 +180,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<UserLogin>(e =>
         {
             e.ToTable("user_login");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => new { x.LoginProvider, x.ProviderKey }).IsUnique();
             e.Property(x => x.LoginProvider).IsRequired().HasMaxLength(100);
             e.Property(x => x.ProviderKey).IsRequired().HasMaxLength(256);
@@ -174,6 +197,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<UserToken>(e =>
         {
             e.ToTable("user_token");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => new { x.UserId, x.LoginProvider, x.Name }).IsUnique();
             e.Property(x => x.LoginProvider).IsRequired().HasMaxLength(100);
             e.Property(x => x.Name).IsRequired().HasMaxLength(200);
@@ -189,8 +214,10 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<AccessToken>(e =>
         {
             e.ToTable("access_token");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => new { x.UserId, x.Token }).IsUnique();
-            e.Property(x => x.Token).IsRequired().HasMaxLength(512);
+            e.Property(x => x.Token).IsRequired().HasColumnType("text");
             e.Property(x => x.RevokedByIp).HasMaxLength(64);
         });
 
@@ -198,6 +225,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<RefreshToken>(e =>
         {
             e.ToTable("refresh_token");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => new { x.UserId, x.Token }).IsUnique();
             e.Property(x => x.Token).IsRequired().HasMaxLength(256);
             e.Property(x => x.DeviceId).HasMaxLength(128);
@@ -209,16 +238,18 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
              .HasForeignKey(x => x.UserId)
              .OnDelete(DeleteBehavior.Cascade);
             
-            e.HasOne(x => x.AccessToken)
-                .WithMany()
-                .HasForeignKey(x => x.AccessTokenId)
-                .OnDelete(DeleteBehavior.Cascade);
+             e.HasOne(x => x.AccessToken)
+                 .WithMany()
+                 .HasForeignKey(x => x.AccessTokenId)
+                 .OnDelete(DeleteBehavior.Cascade);
         });
 
         // -------------------- PasswordHistory
         b.Entity<PasswordHistory>(e =>
         {
             e.ToTable("password_history");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => x.UserId);
             e.Property(x => x.PasswordHash).IsRequired();
 
@@ -232,6 +263,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<UserSecurityLog>(e =>
         {
             e.ToTable("user_security_log");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => x.UserId);
             e.Property(x => x.Action).IsRequired().HasMaxLength(100);
             e.Property(x => x.Description).HasMaxLength(2000);
@@ -248,6 +281,8 @@ public class IdentityDbContext(DbContextOptions<IdentityDbContext> options)
         b.Entity<UserSession>(e =>
         {
             e.ToTable("user_session");
+            // Added index on HashedId
+            e.HasIndex(x => x.HashedId).IsUnique();
             e.HasIndex(x => x.UserId);
             e.HasIndex(x => x.SessionId).IsUnique();
             e.Property(x => x.SessionId).IsRequired().HasMaxLength(128);

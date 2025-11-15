@@ -10,6 +10,6 @@ public interface ICurrentUserService
     string? FullName { get; }
     // Added Roles so callers can read role claims
     IEnumerable<string> Roles { get; }
-    Guid? StoreId { get; }
+    string? StoreId { get; }
     bool IsAuthenticated { get; }
 }

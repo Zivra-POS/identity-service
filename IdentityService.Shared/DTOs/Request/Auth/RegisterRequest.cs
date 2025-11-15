@@ -1,11 +1,10 @@
 using System.ComponentModel.DataAnnotations;
-using ZivraFramework.Core.Interfaces;
+using ZivraFramework.Core.Models;
 
 namespace IdentityService.Shared.DTOs.Request.Auth;
 
-public class RegisterRequest : IBaseEntity
+public class RegisterRequest : BaseDto
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public required string FullName { get; set; }
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
@@ -29,10 +28,4 @@ public class RegisterRequest : IBaseEntity
 
     [MaxLength(10)]
     public string? Rw { get; set; }
-    public DateTime CreDate { get; set; }
-    public string? CreBy { get; set; }
-    public string? CreIpAddress { get; set; }
-    public DateTime? ModDate { get; set; }
-    public string? ModBy { get; set; }
-    public string? ModIpAddress { get; set; }
 }

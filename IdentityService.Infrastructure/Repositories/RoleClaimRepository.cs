@@ -20,4 +20,12 @@ public class RoleClaimRepository : GenericRepository<RoleClaim>, IRoleClaimRepos
             .ToListAsync(ct);
     }
     #endregion
+
+    #region GetByHashedIdAsync
+    public async Task<RoleClaim?> GetByHashedIdAsync(string hashedId, CancellationToken ct = default)
+    {
+        return await _set.AsNoTracking()
+            .FirstOrDefaultAsync(rc => rc.HashedId == hashedId, ct);
+    }
+    #endregion
 }

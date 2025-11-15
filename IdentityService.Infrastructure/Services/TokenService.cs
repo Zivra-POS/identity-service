@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading;
 using IdentityService.Core.Entities;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Core.Interfaces.Services;
@@ -58,8 +59,8 @@ public class TokenService : ITokenService
         claims.AddRange(roleClaims);
         claims.Add(new Claim("is_active", user.IsActive.ToString()));
         
-        if (user.StoreId.HasValue)
-            claims.Add(new Claim("store_id", user.StoreId.Value.ToString()));
+        if (!string.IsNullOrEmpty(user.HashedStoreId))
+            claims.Add(new Claim("store_id", user.HashedStoreId ?? string.Empty));
 
         var expires = DateTime.UtcNow.AddHours(double.Parse(jwt["ExpireHours"] ?? "3"));
         var token = new JwtSecurityToken(
@@ -76,7 +77,7 @@ public class TokenService : ITokenService
         var accessToken = new AccessToken
         {
             Id = Guid.NewGuid(),
-            UserId = user.Id,
+            UserId = user.Id ,
             Token = jwtToken,
             Expires = expires,
             Revoked = null,
@@ -107,6 +108,21 @@ public class TokenService : ITokenService
     public async Task<bool> IsJwtTokenRevokedAsync(Guid accessTokenId)
     {
         return await _accessTokenRepository.IsRevokedAsync(accessTokenId);
+    }
+    #endregion
+
+    #region RevokeAllAccessTokensForUserAsync
+    public async Task RevokeAllAccessTokensForUserAsync(Guid userId, string? revokedByIp = null, CancellationToken ct = default)
+    {
+        var tokens = await _accessTokenRepository.GetActiveByUserIdAsync(userId, ct);
+        if (tokens == null) return;
+
+        foreach (var at in tokens)
+        {
+            await _accessTokenRepository.RevokeAsync(at.Id, revokedByIp, ct);
+        }
+
+        await _unitOfWork.SaveChangesAsync(ct);
     }
     #endregion
 }

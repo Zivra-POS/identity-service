@@ -1,5 +1,5 @@
 using FluentValidation;
-using IdentityService.Shared.DTOs.UserClaim;
+using IdentityService.Shared.DTOs.Request.User;
 
 namespace IdentityService.API.Validators.User;
 
@@ -20,4 +20,3 @@ public class UserClaimRequestValidator : AbstractValidator<UserClaimRequest>
             .MaximumLength(500).WithMessage("Claim Value maksimal {MaxLength} karakter.");
     }
 }
-

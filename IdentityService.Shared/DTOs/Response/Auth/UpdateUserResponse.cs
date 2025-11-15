@@ -1,8 +1,9 @@
+using ZivraFramework.Core.Models;
+
 namespace IdentityService.Shared.DTOs.Response.Auth;
 
-public class UpdateUserResponse
+public class UpdateUserResponse : BaseDto
 {
-    public Guid Id { get; set; }
     public required string FullName { get; set; }
     public string Username { get; set; } = default!;
     public string? DisplayName { get; set; }
@@ -17,9 +18,6 @@ public class UpdateUserResponse
     public string? Rt { get; set; }
     public string? Rw { get; set; }
 
-    public DateTime? ModDate { get; set; }
-    public string? ModBy { get; set; }
-    public string? ModIpAddress { get; set; }
 
     public IEnumerable<string>? Roles { get; set; }
 }

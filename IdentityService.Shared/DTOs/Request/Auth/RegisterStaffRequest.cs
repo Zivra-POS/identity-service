@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
+using ZivraFramework.Core.Models;
 
 namespace IdentityService.Shared.DTOs.Request.Auth;
 
-public class RegisterStaffRequest
+public class RegisterStaffRequest : BaseDto
 {
     public Guid? StoreId { get; set; }
     public Guid? OwnerId { get; set; }
@@ -35,8 +36,4 @@ public class RegisterStaffRequest
     public string? Rw { get; set; }
 
     public Guid[]? RoleIDs { get; set; }
-    
-    public DateTime CreDate { get; set; }
-    public string? CreBy { get; set; }
-    public string? CreIpAddress { get; set; }
 }

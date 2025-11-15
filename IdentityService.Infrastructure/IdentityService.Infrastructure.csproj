@@ -2,6 +2,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\IdentityService.Core\IdentityService.Core.csproj" />
+        <ProjectReference Include="..\IdentityService.Shared\IdentityService.Shared.csproj" />
         <ProjectReference Include="..\..\ZivraFramework\ZivraFramework.EFCore\ZivraFramework.EFCore.csproj" />
         <ProjectReference Include="..\..\ZivraFramework\ZivraFramework.Core\ZivraFramework.Core.csproj" />
     </ItemGroup>

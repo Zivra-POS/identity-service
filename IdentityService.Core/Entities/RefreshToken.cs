@@ -1,11 +1,10 @@
 using System;
-using ZivraFramework.Core.Interfaces;
+using ZivraFramework.Core.Models;
 
 namespace IdentityService.Core.Entities;
 
-public class RefreshToken : IBaseEntity
+public class RefreshToken : BaseEntity
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
     public Guid AccessTokenId { get; set; }
     public Guid UserId { get; set; }
     public string Token { get; set; } = default!;              
@@ -15,13 +14,6 @@ public class RefreshToken : IBaseEntity
     public string? ReplacedByToken { get; set; }               
     public string? DeviceId { get; set; }                   
     public bool IsActive => Revoked == null && DateTime.UtcNow < Expires;
-    
-    public DateTime CreDate { get; set; }
-    public string? CreBy { get; set; }
-    public string? CreIpAddress { get; set; }
-    public DateTime? ModDate { get; set; }
-    public string? ModBy { get; set; }
-    public string? ModIpAddress { get; set; }
 
     public User? User { get; set; }
     public AccessToken? AccessToken { get; set; }

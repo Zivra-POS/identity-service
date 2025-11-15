@@ -54,7 +54,7 @@ public class AuthControllerEmailVerificationTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task SendVerifyEmail_ShouldReplaceExistingToken()
+    public async Task SendVerifyEmail_ShouldReplaceExistingCode()
     {
         // Arrange
         var user = await CreateTestUserAsync("testuser", "test@example.com", emailConfirmed: false);
@@ -72,7 +72,7 @@ public class AuthControllerEmailVerificationTests : BaseIntegrationTest
         // Assert
         response.ShouldBeSuccessStatusCode();
 
-        // Verify only one email verification token exists
+        // Verify only one email verification code exists
         var userTokens = Context.UserTokens
             .Where(ut => ut.UserId == user.Id && ut.Name == "EmailVerification")
             .ToList();
@@ -101,18 +101,18 @@ public class AuthControllerEmailVerificationTests : BaseIntegrationTest
     }
 
     [Fact]
-    public async Task VerifyEmail_WithValidToken_ShouldReturnSuccess()
+    public async Task VerifyEmail_WithValidCode_ShouldReturnSuccess()
     {
         // Arrange
         var user = await CreateTestUserAsync("testuser", "test@example.com", emailConfirmed: false);
         
-        // Send verification email first to get token
+        // Send verification email first to get code
         var sendVerifyEmailRequest = TestDataGenerator.GenerateValidSendVerifyEmailRequest(user.Id, "test@example.com");
         var sendResponse = await PostAsync("/api/auth/send-verify-email", sendVerifyEmailRequest);
         var sendResult = await sendResponse.ShouldDeserializeTo<Result<string>>();
 
         // Act
-        var response = await Client.PostAsync($"/api/auth/verify-email?token={sendResult.Data}", null);
+        var response = await Client.PostAsync($"/api/auth/verify-email?code={sendResult.Data}", null);
 
         // Assert
         response.ShouldBeSuccessStatusCode();
@@ -126,27 +126,27 @@ public class AuthControllerEmailVerificationTests : BaseIntegrationTest
         var userInDb = Context.Users.AsNoTracking().First(u => u.Id == user.Id);
         userInDb.EmailConfirmed.Should().BeTrue();
 
-        // Verify token is deleted
+        // Verify email verification code is created in database
         var userToken = Context.UserTokens
             .AsNoTracking()
             .FirstOrDefault(ut => ut.UserId == user.Id && ut.Name == "EmailVerification");
-        userToken.Should().BeNull();
+        userToken.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task VerifyEmail_WithInvalidToken_ShouldReturnBadRequest()
+    public async Task VerifyEmail_WithInvalidCode_ShouldReturnBadRequest()
     {
         // Act
-        var response = await Client.PostAsync("/api/auth/verify-email?token=invalid-token", null);
+        var response = await Client.PostAsync("/api/auth/verify-email?code=123456", null);
 
         // Assert
         response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
         var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Token verifikasi tidak valid");
+        content.Should().Contain("Kode verifikasi tidak valid");
     }
 
     [Fact]
-    public async Task VerifyEmail_WithExpiredToken_ShouldReturnBadRequest()
+    public async Task VerifyEmail_WithExpiredCode_ShouldReturnBadRequest()
     {
         // Arrange
         var user = await CreateTestUserAsync("testuser", "test@example.com", emailConfirmed: false);
@@ -156,19 +156,19 @@ public class AuthControllerEmailVerificationTests : BaseIntegrationTest
         var sendResponse = await PostAsync("/api/auth/send-verify-email", sendVerifyEmailRequest);
         var sendResult = await sendResponse.ShouldDeserializeTo<Result<string>>();
 
-        // Manually expire the token in database
+        // Manually expire the code in database
         var userToken = Context.UserTokens.First(ut => ut.UserId == user.Id && ut.Name == "EmailVerification");
         userToken.CreDate = DateTime.UtcNow.AddHours(-25); // Set to 25 hours ago (expired)
         Context.UserTokens.Update(userToken);
         await Context.SaveChangesAsync();
 
         // Act
-        var response = await Client.PostAsync($"/api/auth/verify-email?token={sendResult.Data}", null);
+        var response = await Client.PostAsync($"/api/auth/verify-email?code={sendResult.Data}", null);
 
         // Assert
         response.ShouldHaveStatusCode(HttpStatusCode.BadRequest);
         var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Token verifikasi telah kedaluwarsa");
+        content.Should().Contain("Kode verifikasi telah kedaluwarsa");
     }
 
     [Fact]

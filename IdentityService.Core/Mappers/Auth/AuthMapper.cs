@@ -15,7 +15,8 @@ public static class AuthMapper
             Roles = roles,
             Token = token ?? string.Empty,
             RefreshToken = refreshToken ?? string.Empty,
-            VerifyToken = verifyToken
+            VerifyToken = verifyToken,
+            StoreId = user.HashedStoreId ?? string.Empty,
         };
     }
 }

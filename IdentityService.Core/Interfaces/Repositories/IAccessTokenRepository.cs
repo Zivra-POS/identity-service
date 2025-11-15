@@ -8,4 +8,5 @@ public interface IAccessTokenRepository : IGenericRepository<AccessToken>
     Task RevokeAsync(Guid accessTokenId, string? revokedByIp = null, CancellationToken ct = default);
     Task<bool> IsRevokedAsync(Guid accessTokenId, CancellationToken ct = default);
     Task<AccessToken?> GetByIdWithUserAsync(Guid id, CancellationToken ct = default);
+    Task<IEnumerable<AccessToken>> GetActiveByUserIdAsync(Guid userId, CancellationToken ct = default);
 }

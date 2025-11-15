@@ -38,7 +38,7 @@ public class StoreRepository : GenericRepository<Store>, IStoreRepository
 
         return new PagedResult<Store>
         {
-            Total = total,
+            TotalCount = total,
             Items = items
         };
     }
@@ -74,6 +74,14 @@ public class StoreRepository : GenericRepository<Store>, IStoreRepository
             .Select(st => st.Code ?? string.Empty)
             .FirstOrDefaultAsync(cancellationToken: ct);
 
+    }
+    #endregion
+
+    #region GetByHashedIdAsync
+    public async Task<Store?> GetByHashedIdAsync(string hashedId, CancellationToken ct = default)
+    {
+        return await _set.AsNoTracking()
+            .FirstOrDefaultAsync(s => s.HashedId == hashedId, ct);
     }
     #endregion
 }

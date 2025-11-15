@@ -1,5 +1,5 @@
 using IdentityService.Core.Entities;
-using IdentityService.Shared.DTOs.UserClaim;
+using IdentityService.Shared.DTOs.Response.User;
 
 namespace IdentityService.Core.Mappers.User;
 

@@ -1,10 +1,10 @@
+using ZivraFramework.Core.Models;
 using IdentityService.Shared.Constants;
 
 namespace IdentityService.Shared.DTOs.Response.Store;
 
-public class StoreResponse
+public class StoreResponse : BaseDto
 {
-    public Guid Id { get; set; }
     public string Name { get; set; } = default!;
     public string? Code { get; set; }
     public string? Address { get; set; }
@@ -15,12 +15,7 @@ public class StoreResponse
     public string? Rw { get; set; }
     public string? Phone { get; set; }
     public bool IsActive { get; set; }
+    public string? AccessToken { get; set; }
+    public string? RefreshToken { get; set; }
     public CostingMethod CostingMethod { get; set; }
-
-    public DateTime CreDate { get; set; }
-    public string? CreBy { get; set; }
-    public string? CreIpAddress { get; set; }
-    public DateTime? ModDate { get; set; }
-    public string? ModBy { get; set; }
-    public string? ModIpAddress { get; set; }
 }

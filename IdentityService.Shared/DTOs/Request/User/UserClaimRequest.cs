@@ -1,12 +1,11 @@
 using System;
+using ZivraFramework.Core.Models;
 
-namespace IdentityService.Shared.DTOs.UserClaim;
+namespace IdentityService.Shared.DTOs.Request.User;
 
-public class UserClaimRequest
+public class UserClaimRequest : BaseDto
 {
-    public Guid? Id { get; set; }
     public Guid UserId { get; set; }
     public string ClaimType { get; set; } = default!;
     public string ClaimValue { get; set; } = default!;
 }
-
