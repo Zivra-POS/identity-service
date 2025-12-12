@@ -1,7 +1,10 @@
 using IdentityService.Core.Entities;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Infrastructure.Persistence;
+using IdentityService.Shared.DTOs.Response.UserBranch;
 using Microsoft.EntityFrameworkCore;
+using ZivraFramework.Core.Filtering;
+using ZivraFramework.Core.Filtering.Entities;
 using ZivraFramework.Core.Models;
 using ZivraFramework.EFCore.Repositories;
 
@@ -9,39 +12,38 @@ namespace IdentityService.Infrastructure.Repositories;
 
 public class UserBranchRepository : GenericRepository<UserBranch>, IUserBranchRepository
 {
-    public UserBranchRepository(IdentityDbContext ctx) : base(ctx) { }
+    public UserBranchRepository(IdentityDbContext ctx) : base(ctx)
+    {
+    }
 
     #region GetPagedByStoreAsync
-    public async Task<PagedResult<UserBranch>> GetPagedByStoreAsync(PagedQuery query, Guid storeId, CancellationToken ct = default)
+    public async Task<PagedResult<UserBranchResponse>> GetPagedByStoreAsync(QueryRequest query, Guid storeId,
+        CancellationToken ct = default)
     {
         IQueryable<UserBranch> q = _set.AsNoTracking()
             .Include(ub => ub.User)
             .Include(ub => ub.Branch)
+            .ApplyFiltering(query)
             .Where(ub => ub.Branch!.StoreId == storeId);
-        
-        var keyword = query?.Keyword ?? string.Empty;
-        var limit = query?.Limit ?? 10;
-        var offset = query?.Offset ?? 0;
-
-        if (!string.IsNullOrWhiteSpace(keyword))
-        {
-            var s = keyword.Trim().ToLower();
-            q = q.Where(ub => 
-                EF.Functions.ILike(ub.User!.Username, "%" + s + "%") || 
-                EF.Functions.ILike(ub.User!.Email!, "%" + s + "%") ||
-                EF.Functions.ILike(ub.Branch!.Name, "%" + s + "%") || 
-                EF.Functions.ILike(ub.Branch!.Code!, "%" + s + "%"));
-        }
 
         var total = await q.CountAsync(ct);
 
         var items = await q
-            .OrderByDescending(ub => ub.CreDate)
-            .Skip(offset)
-            .Take(limit)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(ub => new UserBranchResponse
+            {
+                HashedId = ub.HashedId,
+                Id = ub.Id,
+                UserId = ub.UserId,
+                BranchId = ub.BranchId,
+                IsPrimary = ub.IsPrimary,
+                BranchName = ub.Branch!.Name,
+                BranchCode = ub.Branch.Code,
+            })
             .ToListAsync(ct);
 
-        return new PagedResult<UserBranch>
+        return new PagedResult<UserBranchResponse>
         {
             TotalCount = total,
             Items = items
@@ -50,6 +52,7 @@ public class UserBranchRepository : GenericRepository<UserBranch>, IUserBranchRe
     #endregion
 
     #region GetByUserIdAsync
+
     public async Task<IEnumerable<UserBranch>> GetByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await _set.AsNoTracking()
@@ -62,6 +65,7 @@ public class UserBranchRepository : GenericRepository<UserBranch>, IUserBranchRe
     #endregion
 
     #region GetByBranchIdAsync
+
     public async Task<IEnumerable<UserBranch>> GetByBranchIdAsync(Guid branchId, CancellationToken ct = default)
     {
         return await _set.AsNoTracking()
@@ -70,9 +74,11 @@ public class UserBranchRepository : GenericRepository<UserBranch>, IUserBranchRe
             .OrderBy(ub => ub.User!.Username)
             .ToListAsync(ct);
     }
+
     #endregion
 
     #region GetByUserAndBranchAsync
+
     public async Task<UserBranch?> GetByUserAndBranchAsync(Guid userId, Guid branchId, CancellationToken ct = default)
     {
         return await _set.AsNoTracking()
@@ -80,9 +86,11 @@ public class UserBranchRepository : GenericRepository<UserBranch>, IUserBranchRe
             .Include(ub => ub.Branch)
             .FirstOrDefaultAsync(ub => ub.UserId == userId && ub.BranchId == branchId, ct);
     }
+
     #endregion
 
     #region GetRowsForLookupAsync
+
     public async Task<IEnumerable<UserBranch>> GetRowsForLookupAsync(Guid storeId, CancellationToken ct = default)
     {
         return await _set.AsNoTracking()
@@ -93,15 +101,30 @@ public class UserBranchRepository : GenericRepository<UserBranch>, IUserBranchRe
             .ThenBy(ub => ub.Branch!.Name)
             .ToListAsync(ct);
     }
+
     #endregion
 
     #region GetByHashedIdAsync
+
     public async Task<UserBranch?> GetByHashedIdAsync(string hashedId, CancellationToken ct = default)
     {
         return await _set.AsNoTracking()
             .Include(ub => ub.User)
             .Include(ub => ub.Branch)
             .FirstOrDefaultAsync(ub => ub.HashedId == hashedId, ct);
+    }
+
+    #endregion
+
+    #region SetFalseIsPrimaryAsync
+    public async Task SetFalseIsPrimaryAsync(Guid userId, CancellationToken ct = default)
+    {
+        await _set
+            .Where(ub => ub.UserId == userId && ub.IsPrimary)
+            .ExecuteUpdateAsync(updater => updater
+                    .SetProperty(ub => ub.IsPrimary, false),
+                ct
+            );
     }
     #endregion
 }

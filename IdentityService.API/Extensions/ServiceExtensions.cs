@@ -1,4 +1,3 @@
-using IdentityService.API.Filters;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Mvc;

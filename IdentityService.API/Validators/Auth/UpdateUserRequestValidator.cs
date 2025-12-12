@@ -8,8 +8,6 @@ public class UpdateUserRequestValidator : AbstractValidator<UpdateUserRequest>
 {
     public UpdateUserRequestValidator()
     {
-        RuleFor(x => x.Id)
-            .NotEmpty().WithMessage("Id user wajib diisi.");
 
         RuleFor(x => x.DisplayName)
             .MaximumLength(256).WithMessage("Display name maksimal {MaxLength} karakter.")
@@ -19,7 +17,7 @@ public class UpdateUserRequestValidator : AbstractValidator<UpdateUserRequest>
             .MaximumLength(20).WithMessage("Nomor Telepon maksimal {MaxLength} karakter.")
             .When(x => !string.IsNullOrWhiteSpace(x.PhoneNumber));
 
-        RuleFor(x => x.ProfilImage)
+        RuleFor(x => x.ProfileImage)
             .Custom((file, context) =>
             {
                 if (file == null) return;

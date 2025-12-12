@@ -1,4 +1,5 @@
 using IdentityService.Core.Entities;
+using IdentityService.Shared.DTOs.Response.staff;
 using ZivraFramework.Core.Interfaces;
 using IdentityService.Shared.DTOs.User;
 using ZivraFramework.Core.Filtering.Entities;
@@ -17,5 +18,5 @@ public interface IUserRepository : IGenericRepository<User>
     Task UpdateStoreIdAsync(Guid userId, Guid storeId, CancellationToken ct = default);
     Task<bool> IsUserAccessStoreAsync(Guid userId, Guid storeId, CancellationToken ct = default);
     Task<User?> GetByHashedIdAsync(string hashedId, CancellationToken ct = default);
-    Task<PagedResult<User>> GetStaffByStoreIdAsync(QueryRequest req, CancellationToken ct = default);
+    Task<PagedResult<StaffResponse>> GetStaffByStoreIdAsync(QueryRequest req, Guid storeId, CancellationToken ct = default);
 }

@@ -1,7 +1,11 @@
 using IdentityService.Core.Entities;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Infrastructure.Persistence;
+using IdentityService.Shared.DTOs.Response.Role;
 using Microsoft.EntityFrameworkCore;
+using ZivraFramework.Core.Filtering;
+using ZivraFramework.Core.Filtering.Entities;
+using ZivraFramework.Core.Models;
 using ZivraFramework.EFCore.Repositories;
 
 namespace IdentityService.Infrastructure.Repositories;
@@ -11,6 +15,36 @@ public class RoleRepository : GenericRepository<Role>, IRoleRepository
     public RoleRepository(IdentityDbContext ctx) : base(ctx)
     {
     }
+    
+    #region GetAllAsync
+    public async Task<PagedResult<RoleResponse>> GetAllAsync(QueryRequest query, CancellationToken ct = default)
+    {
+        IQueryable<Role> q = _set
+            .AsNoTracking()
+            .ApplyFiltering(query);
+        
+        var total = await q.CountAsync(ct);
+        
+        var items = await q
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(r => new RoleResponse
+            {
+                Id = r.Id,
+                HashedId = r.HashedId,
+                Name = r.Name,
+                NormalizedName = r.NormalizedName,
+                Description = r.Description,
+            })
+            .ToListAsync(ct);
+        
+        return new PagedResult<RoleResponse>
+        {
+            TotalCount = total,
+            Items = items
+        };
+    }
+    #endregion
 
     #region GetByIdsAsync
     public async Task<IEnumerable<Role>> GetByIdsAsync(IEnumerable<Guid>? ids, CancellationToken ct = default)

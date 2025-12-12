@@ -5,6 +5,7 @@ using IdentityService.Core.Mappers.Role;
 using IdentityService.Shared.DTOs.Request.Role;
 using IdentityService.Shared.DTOs.Response.Role;
 using ZivraFramework.Core.API.Exception;
+using ZivraFramework.Core.Filtering.Entities;
 using ZivraFramework.Core.Interfaces;
 using ZivraFramework.Core.Models;
 
@@ -22,13 +23,9 @@ public class RoleService : IRoleService
     }
 
     #region GetAll
-    public async Task<IEnumerable<RoleResponse>> GetAllAsync(PagedQuery query)
+    public async Task<PagedResult<RoleResponse>> GetAllAsync(QueryRequest query)
     {
-        var paged = await _roleRepo.GetPagedAsync(query);
-
-        var resList = paged.Items.Select(item => RoleMapper.ToResponse(item)).ToList();
-
-        return resList;
+        return await _roleRepo.GetAllAsync(query);
     }
     #endregion
 

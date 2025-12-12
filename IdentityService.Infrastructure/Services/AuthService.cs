@@ -11,6 +11,7 @@ using IdentityService.Shared.Constants;
 using IdentityService.Shared.DTOs.Request.Auth;
 using IdentityService.Shared.DTOs.Request.User;
 using IdentityService.Shared.DTOs.Response.Auth;
+using IdentityService.Shared.DTOs.Response.staff;
 using Microsoft.Extensions.Configuration;
 using ZivraFramework.Core.API.Exception;
 using ZivraFramework.Core.Filtering.Entities;
@@ -276,7 +277,6 @@ public class AuthService : IAuthService
             
             var user = new User
             {
-                Id = Guid.NewGuid(),
                 FullName = req.FullName,
                 Username = req.Username,
                 NormalizedUsername = req.Username.ToUpperInvariant(),
@@ -302,6 +302,7 @@ public class AuthService : IAuthService
             };
             
             await _userRepository.AddAsync(user);
+            await _unitOfWork.SaveChangesAsync();
             
             var distinctRoleIds = req.RoleIDs?.Distinct() ?? Array.Empty<Guid>();
             foreach (var roleId in distinctRoleIds)
@@ -386,15 +387,28 @@ public class AuthService : IAuthService
             var user = await _userRepository.GetByIdAsync(req.Id);
             if (user == null)
             {
-                Logger.Error($"User dengan Id '{req.Id}' tidak ditemukan.");
+                Logger.Error($"User dengan Id '{req.HashedId}' tidak ditemukan.");
                 throw new NotFoundException("User tidak ditemukan.");
             }
+
+            if (req.ProfileImage != null)
+            {
+                user.ProfileUrl = await _fileHelper.ReplaceIfChangedAsync(
+                    req.ProfileImage,
+                    user.ProfileUrl,
+                    "profiles"
+                );
+            }
+            else if (req.RemoveImage)
+            {
+                await _fileHelper.DeleteAsync(user.ProfileUrl);
+                user.ProfileUrl = null;
+            }
             
-            var imageUrl = await _fileHelper.ReplaceIfChangedAsync(req.ProfilImage, user.ProfileUrl, "profiles");
             user.DisplayName = req.DisplayName;
+            user.FullName = req.FullName;
             user.PhoneNumber = req.PhoneNumber;
             user.IsActive = req.IsActive ?? user.IsActive;
-            user.ProfileUrl = imageUrl;
             user.Address = req.Address;
             user.Province = req.Province;
             user.City = req.City;
@@ -939,9 +953,9 @@ public class AuthService : IAuthService
     #endregion
     
     #region GetStaffByStoreIdAsync
-    public async Task<PagedResult<User>> GetStaffByStoreIdAsync(QueryRequest req)
+    public async Task<PagedResult<StaffResponse>> GetStaffByStoreIdAsync(QueryRequest req, Guid storeId)
     {
-        return await _userRepository.GetStaffByStoreIdAsync(req);
+        return await _userRepository.GetStaffByStoreIdAsync(req, storeId);
     }
     #endregion
 

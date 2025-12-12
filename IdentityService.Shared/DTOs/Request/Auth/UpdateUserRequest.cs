@@ -31,7 +31,7 @@ public class UpdateUserRequest
     public string? ModIpAddress { get; set; }
 
     [FromForm(Name = "FullName")]
-    public required string FullName { get; set; }
+    public string? FullName { get; set; }
 
     [FromForm(Name = "DisplayName")]
     public string? DisplayName { get; set; }
@@ -42,8 +42,11 @@ public class UpdateUserRequest
     [FromForm(Name = "IsActive")]
     public bool? IsActive { get; set; }
 
-    [FromForm(Name = "ProfilImage")]
-    public IFormFile? ProfilImage { get; set; }
+    [FromForm(Name = "ProfileImage")]
+    public IFormFile? ProfileImage { get; set; }
+    
+    [FromForm(Name = "RemoveImage")]
+    public bool RemoveImage { get; set; }
 
     [MaxLength(4000)]
     [FromForm(Name = "Address")]

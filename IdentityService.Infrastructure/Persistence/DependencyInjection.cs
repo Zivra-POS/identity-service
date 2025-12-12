@@ -53,6 +53,7 @@ public static class DependencyInjection
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IRoleClaimService, RoleClaimService>();
         services.AddScoped<IUserClaimService, UserClaimService>();
+        services.AddScoped<IUserRoleService, UserRoleService>();
         
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();

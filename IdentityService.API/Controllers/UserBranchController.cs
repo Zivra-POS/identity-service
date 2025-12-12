@@ -2,7 +2,9 @@ using IdentityService.Core.Interfaces.Services;
 using IdentityService.Shared.DTOs.Request.UserBranch;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ZivraFramework.Core.Filtering.Entities;
 using ZivraFramework.Core.Models;
+using ZivraFramework.Core.Utils;
 
 namespace IdentityService.API.Controllers;
 
@@ -21,13 +23,15 @@ public class UserBranchController : ControllerBase
     }
 
     #region GetAll
-    [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] PagedQuery query)
+    [HttpPost("search")]
+    public async Task<IActionResult> GetAll([FromBody] QueryRequest query)
     {
         if (_currentUserService.StoreId == null)
-            return Unauthorized("Store information is required");
+            return Unauthorized("Toko Id tidak ditemukan.");
 
-        var res = await _userBranchService.GetAllAsync(query, Guid.Empty);
+        var storeId = Base62Guid.Decode(_currentUserService.StoreId, "s_");
+
+        var res = await _userBranchService.GetAllAsync(query, storeId);
         return Ok(res);
     }
     #endregion
@@ -70,19 +74,28 @@ public class UserBranchController : ControllerBase
 
     #region Create
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] UserBranchRequest request)
+    public async Task<IActionResult> Create([FromBody] IEnumerable<UserBranchRequest> request)
     {
-        var res = await _userBranchService.CreateAsync(request);
-        return CreatedAtAction(nameof(GetById), new { id = res.Id }, res);
+        var r = await _userBranchService.CreateBulkAsync(request);
+        return Ok(new { count = r });
     }
     #endregion
 
     #region Delete
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(Guid id)
+    [HttpDelete]
+    public async Task<IActionResult> Delete([FromBody] List<Guid> id)
     {
-        var msg = await _userBranchService.DeleteAsync(id);
-        return Ok(new { message = msg });
+        var r = await _userBranchService.DeleteBulkAsync(id);
+        return Ok(new { count = r });
+    }
+    #endregion
+    
+    #region ChangePrimaryBranch
+    [HttpPost("change-primary")]
+    public async Task<IActionResult> ChangePrimaryBranch([FromBody] ChangePrimaryBranchRequest request)
+    {
+        var r = await _userBranchService.ChangePrimaryBranchAsync(request);
+        return Ok(new { count = r });
     }
     #endregion
 }

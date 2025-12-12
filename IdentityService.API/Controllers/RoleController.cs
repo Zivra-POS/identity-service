@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using IdentityService.Core.Interfaces.Services;
 using IdentityService.Shared.DTOs.Request.Role;
+using ZivraFramework.Core.Filtering.Entities;
 using ZivraFramework.Core.Models;
 
 namespace IdentityService.API.Controllers;
@@ -16,9 +17,9 @@ public class RoleController : ControllerBase
         _roleService = roleService;
     }
 
-    #region GetAll
-    [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] PagedQuery query)
+    #region GetAllAsync
+    [HttpPost("search")]
+    public async Task<IActionResult> GetAllAsync([FromBody] QueryRequest query)
     {
         var res = await _roleService.GetAllAsync(query);
         return Ok(res);

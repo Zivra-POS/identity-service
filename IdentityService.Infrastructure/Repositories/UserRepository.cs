@@ -1,11 +1,13 @@
 using IdentityService.Core.Entities;
 using IdentityService.Core.Interfaces.Repositories;
 using IdentityService.Infrastructure.Persistence;
+using IdentityService.Shared.DTOs.Response.staff;
 using IdentityService.Shared.DTOs.User;
 using Microsoft.EntityFrameworkCore;
 using ZivraFramework.Core.Filtering;
 using ZivraFramework.Core.Filtering.Entities;
 using ZivraFramework.Core.Models;
+using ZivraFramework.Core.Utils;
 using ZivraFramework.EFCore.Repositories;
 
 namespace IdentityService.Infrastructure.Repositories;
@@ -40,11 +42,12 @@ public class UserRepository : GenericRepository<User>, IUserRepository
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .Include(u => u.Claims)
-            .Include(u => u.RefreshTokens)
             .Include(u => u.UserBranches)
             .FirstOrDefaultAsync(u => u.Id == id, ct);
 
         if (user == null) return null;
+        
+        user.PasswordHash = null;
 
         // Populate HashedStoreId if StoreId exists
         if (user.StoreId.HasValue)
@@ -133,22 +136,54 @@ public class UserRepository : GenericRepository<User>, IUserRepository
     #endregion
     
     #region GetStaffByStoreIdAsync
-    public async Task<PagedResult<User>> GetStaffByStoreIdAsync(QueryRequest req, CancellationToken ct = default)
+    public async Task<PagedResult<StaffResponse>> GetStaffByStoreIdAsync(QueryRequest req, Guid storeId, CancellationToken ct = default)
     {
-        var q = _set.AsNoTracking().ApplyFiltering(req);
+        var q = _set.AsNoTracking()
+            .Include(u => u.UserBranches)
+            .ThenInclude(ub => ub.Branch)
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .ApplyFiltering(req)
+            .Where(u => u.StoreId == storeId)
+            .Where(u => u.UserRoles.All(ur => ur.Role!.Name != "OWNER"));
 
         var count = await q.CountAsync(ct);
 
         var users = await q
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
+            .Select(u => new StaffResponse
+            {
+                HashedId = Base62Guid.Encode(u.Id, "u_"),
+                FullName = u.FullName,
+                Email = u.Email,
+                PhoneNumber = u.PhoneNumber,
+                IsActive = u.IsActive,
+                Province = u.Province,
+                City = u.City,
+                District = u.District,
+
+                Branches = u.UserBranches.Select(ub => new StaffBranchResponse
+                {
+                    BranchId = ub.BranchId.ToString(),
+                    BranchCode = (ub.Branch != null ? ub.Branch.Code : "")!,
+                    BranchName = ub.Branch != null ? ub.Branch.Name : "",
+                }).ToList(),
+
+                Roles = u.UserRoles.Select(ur => new StaffRoleResponse
+                {
+                    RoleId = ur.RoleId.ToString(),
+                    RoleName = ur.Role != null ? ur.Role.Name : ""
+                }).ToList()
+            })
             .ToListAsync(ct);
 
-        return new PagedResult<User>()
+        return new PagedResult<StaffResponse>
         {
             Items = users,
             TotalCount = count,
         };
     }
     #endregion
+
 }

@@ -49,17 +49,14 @@ public class BranchRepository : GenericRepository<Branch>, IBranchRepository
     #region GetAllByStoreIdAsync
     public async Task<PagedResult<Branch>> GetAllByStoreIdAsync(QueryRequest req, Guid storeId, CancellationToken ct = default)
     {
-        var q = _set.AsNoTracking().ApplyFiltering(req);
-
-        if (req?.Sorts == null || !req.Sorts.Any())
-        {
-            q = q.OrderByDescending(b => b.CreDate);
-        }
+        var q = _set
+            .AsNoTracking()
+            .ApplyFiltering(req)
+            .Where(b => b.StoreId == storeId);
 
         var count = await q.CountAsync(ct);
 
         var branches = await q
-            .Where(b => b.StoreId == storeId)
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
             .ToListAsync(ct);

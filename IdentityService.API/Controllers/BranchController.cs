@@ -23,7 +23,7 @@ public class BranchController : ControllerBase
     }
 
     #region GetAll
-    [HttpPost("all")]
+    [HttpPost("search")]
     public async Task<IActionResult> GetAll([FromBody] QueryRequest query)
     {
         var storeId = _currentUserService.StoreId;

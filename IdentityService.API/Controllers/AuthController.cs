@@ -58,6 +58,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> RegisterStaff([FromForm] RegisterStaffRequest req)
     {
         req.OwnerId ??= _currentUser.UserId;
+        req.StoreId ??= Base62Guid.Decode(_currentUser.StoreId ?? String.Empty, "s_");
         var res = await _authService.RegisterStaffAsync(req);
         return StatusCode(StatusCodes.Status201Created, res);
     }
@@ -69,6 +70,15 @@ public class AuthController : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UpdateUserAsync([FromForm] UpdateUserRequest req)
     {
+        if (req.HashedId != null)
+        {
+            req.Id = Base62Guid.Decode(req.HashedId ?? String.Empty, "u_");
+        }
+        else
+        {
+            req.Id = _currentUser.UserId;
+        }
+        
         var res = await _authService.UpdateUserAsync(req);
         return Ok(res);
     }
@@ -263,16 +273,28 @@ public class AuthController : ControllerBase
     #region Me
     [HttpGet("me")]
     [Authorize]
-    public IActionResult Me()
+    public async Task<IActionResult> Me()
     {
+        var user = await _authService.GetUserByIdAsync(_currentUser.UserId);
+        
         return Ok(new
         {
-            Id = _currentUser.UserId,
-            _currentUser.Username,
-            _currentUser.FullName,
-            _currentUser.Email,
-            _currentUser.Roles,
-            _currentUser.StoreId
+            Id = user.Id,
+            user.HashedId,
+            user.Username,
+            user.FullName,
+            user.Email,
+            StoreId = user.HashedStoreId,
+            user.ProfileUrl,
+            user.DisplayName,
+            user.PhoneNumber,
+            user.Province,
+            user.City,
+            user.District,
+            user.Rt,
+            user.Rw,
+            user.Address,
+            user.IsActive,
         });
     }
     #endregion
@@ -284,27 +306,47 @@ public class AuthController : ControllerBase
         var user = await _authService.GetUserByHashedIdAsync(hashedId);
         if (user == null)
             return NotFound(new { message = "User tidak ditemukan." });
-
-        var roles = user.UserRoles?.Select(ur => ur.Role?.Name).Where(rn => !string.IsNullOrWhiteSpace(rn)).Select(rn => rn!).ToArray() ?? Array.Empty<string>();
-
+        
         return Ok(new
         {
             Id = user.Id,
             user.Username,
             user.FullName,
             user.Email,
-            Roles = roles,
-            user.StoreId
+            user.StoreId,
+            user.ProfileUrl,
+            user.DisplayName,
+            user.PhoneNumber,
+            user.Province,
+            user.City,
+            user.District,
+            user.Rt,
+            user.Rw,
+            user.Address,
+            user.IsActive,
         });
     }
     #endregion
     
-    #region GetStaffByStoreIdAsync
-    [HttpGet("staff-by-store")]
-    [Authorize]
-    public async Task<IActionResult> GetStaffByStoreIdAsync([FromQuery] QueryRequest req)
+    #region GetUserById
+    [HttpGet("user/{id}")]
+    public async Task<IActionResult> GetUserById(Guid id)
     {
-        var result = await _authService.GetStaffByStoreIdAsync(req);
+        var user = await _authService.GetUserByIdAsync(id);
+
+        return Ok(user);
+    }
+    #endregion
+    
+    #region GetStaffByStoreIdAsync
+    [HttpPost("staff-by-store")]
+    [Authorize]
+    public async Task<IActionResult> GetStaffByStoreIdAsync([FromBody] QueryRequest req)
+    {
+        if (_currentUser.StoreId == null) throw new ForbiddenException("Anda belum memiliki toko.");
+        
+        var storeId = Base62Guid.Decode(_currentUser.StoreId, "s_");
+        var result = await _authService.GetStaffByStoreIdAsync(req, storeId);
         return Ok(result);
     }
     #endregion

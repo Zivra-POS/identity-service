@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using ZivraFramework.Core.Filtering.Entities;
 
 namespace IdentityService.Infrastructure.Services;
 
@@ -33,13 +34,12 @@ public class UserBranchService : IUserBranchService
     }
 
     #region GetAllAsync
-    public async Task<IEnumerable<UserBranchResponse>> GetAllAsync(PagedQuery query, Guid storeId)
+    public async Task<PagedResult<UserBranchResponse>> GetAllAsync(QueryRequest query, Guid storeId)
     {
         var pagedResult = await _userBranchRepository.GetPagedByStoreAsync(query, storeId);
-        var response = pagedResult.Items.Select(UserBranchMapper.ToResponse);
         
         Logger.Info("Berhasil mengambil data user branch");
-        return response;
+        return pagedResult;
     }
     #endregion
 
@@ -94,14 +94,26 @@ public class UserBranchService : IUserBranchService
         if (branch == null)
             throw new NotFoundException("Branch tidak ditemukan.");
         
-        var existingUserBranch = await _userBranchRepository.GetByUserAndBranchAsync(req.UserId, req.BranchId);
+        Guid userId;
+
+        var encoded = req.UserId;
+        if (encoded != null)
+        {
+            userId = Base62Guid.Decode(encoded, "u_");
+        }
+        else
+        {
+            throw new ValidationException("User Id tidak ditemukan.");
+        }
+        
+        var existingUserBranch = await _userBranchRepository.GetByUserAndBranchAsync(userId, req.BranchId);
         if (existingUserBranch != null)
             throw new ValidationException("User branch sudah ditambahkan.");
 
         var userBranch = new UserBranch
             {
                 Id = Guid.NewGuid(),
-                UserId = req.UserId,
+                UserId = userId,
                 BranchId = req.BranchId,
                 IsPrimary = req.IsPrimary,
                 CreDate = req.CreDate ?? DateTime.UtcNow,
@@ -115,6 +127,67 @@ public class UserBranchService : IUserBranchService
         Logger.Info("Berhasil menambah data branch ke user");
         var resp = await _userBranchRepository.GetByIdAsync(userBranch.Id);
         return UserBranchMapper.ToResponse(resp!);
+    }
+    #endregion
+    
+    #region CreteBulkAsync
+    public async Task<int> CreateBulkAsync(IEnumerable<UserBranchRequest> requests)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            List<string> errors = [];
+            Guid userId;
+
+            var userBranchRequests = requests.ToList();
+            var encoded = userBranchRequests!.FirstOrDefault()!.UserId;
+            if (encoded != null)
+            {
+                userId = Base62Guid.Decode(encoded, "u_");
+            }
+            else
+            {
+                throw new ValidationException("User Id tidak ditemukan.");
+            }
+
+            foreach (var req in userBranchRequests)
+            {
+                var branch = await _branchRepository.GetByIdAsync(req.BranchId);
+                if (branch == null) errors.Add($"Branch {req.BranchName} tidak ditemukan.");
+        
+                var existingUserBranch = await _userBranchRepository.GetByUserAndBranchAsync(userId, req.BranchId);
+                if (existingUserBranch != null)
+                    errors.Add($"Branch {req.BranchName} sudah ditambahkan ke user.");
+
+                var userBranch = new UserBranch
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    BranchId = req.BranchId,
+                    IsPrimary = req.IsPrimary,
+                    CreDate = req.CreDate ?? DateTime.UtcNow,
+                    CreBy = req.CreBy,
+                    CreIpAddress = req.CreIpAddress
+                };
+
+                await _userBranchRepository.AddAsync(userBranch);
+                Logger.Info("Berhasil menambah data branch ke user");
+            }
+            
+            if (errors.Any())
+                throw new ValidationException(errors);
+            
+            var result = await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+            
+            return result;
+        }
+        catch (Exception e)
+        {
+            Logger.Error("Gagal menambah data user branch secara bulk", e);
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
     }
     #endregion
 
@@ -132,6 +205,35 @@ public class UserBranchService : IUserBranchService
         return "User branch deleted successfully";
     }
     #endregion
+    
+    #region DeleteBulkAsync
+    public async Task<int> DeleteBulkAsync(List<Guid> ids)
+    {
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            foreach (var id in ids)
+            {
+                var b = new UserBranch()
+                {
+                    Id = id
+                };
+                
+                _userBranchRepository.Delete(b);
+            }
+            
+            var result =  await _unitOfWork.SaveChangesAsync();
+            await _unitOfWork.CommitTransactionAsync();
+            return result;
+        }
+        catch (Exception e)
+        {
+            Logger.Error("Gagal menambah data user branch secara", e);
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
+    #endregion
 
     #region GetRowsForLookupAsync
     public async Task<IEnumerable<UserBranchLookupResponse>> GetRowsForLookupAsync(Guid storeId)
@@ -141,6 +243,44 @@ public class UserBranchService : IUserBranchService
         
         Logger.Info("Berhasil mengambil data user branch untuk lookup");
         return response;
+    }
+    #endregion
+    
+    #region ChangePrimaryBranchAsync
+    public async Task<int> ChangePrimaryBranchAsync(ChangePrimaryBranchRequest req)
+    {
+        var userBranch = await _userBranchRepository.GetByUserAndBranchAsync(req.UserId, req.BranchId);
+        if (userBranch == null)
+            throw new NotFoundException("User branch tidak ditemukan");
+
+        if (req.IsPrimary)
+        {
+            await _userBranchRepository.SetFalseIsPrimaryAsync(req.UserId);
+
+            userBranch.IsPrimary = true;
+            _userBranchRepository.Update(userBranch);
+
+            var result = await _unitOfWork.SaveChangesAsync();
+            Logger.Info("Berhasil menjadikan cabang ini sebagai primary");
+            return result;
+        }
+
+        if (!req.IsPrimary)
+        {
+            if (userBranch.IsPrimary)
+            {
+                throw new BusinessException("Silakan jadikan cabang lain sebagai utama terlebih dahulu.");
+            }
+
+            userBranch.IsPrimary = false;
+            _userBranchRepository.Update(userBranch);
+
+            var result = await _unitOfWork.SaveChangesAsync();
+            Logger.Info("Cabang non-primary diupdate");
+            return result;
+        }
+
+        return 0;
     }
     #endregion
 }

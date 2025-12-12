@@ -6,10 +6,11 @@ namespace IdentityService.Shared.DTOs.Request.UserBranch;
 public class UserBranchRequest : BaseDto
 {
     [Required]
-    public Guid UserId { get; set; }
+    public string? UserId { get; set; }
 
     [Required]
     public Guid BranchId { get; set; }
+    public string? BranchName { get; set; }
 
     public bool IsPrimary { get; set; }
 }

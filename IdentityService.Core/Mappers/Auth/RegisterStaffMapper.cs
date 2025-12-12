@@ -10,6 +10,7 @@ public class RegisterStaffMapper
         return new RegisterStaffResponse
         {
             Id = user.Id,
+            HashedId = user.HashedId,
             FullName = user.FullName ?? string.Empty,
             Username = user.Username,
             Email = user.Email,

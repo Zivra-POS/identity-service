@@ -4,12 +4,13 @@ using ZivraFramework.Core.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System;
+using ZivraFramework.Core.Filtering.Entities;
 
 namespace IdentityService.Core.Interfaces.Services;
 
 public interface IUserBranchService
 {
-    Task<IEnumerable<UserBranchResponse>> GetAllAsync(PagedQuery query, Guid storeId);
+    Task<PagedResult<UserBranchResponse>> GetAllAsync(QueryRequest query, Guid storeId);
     Task<UserBranchResponse> GetByIdAsync(Guid id);
     Task<IEnumerable<UserBranchResponse>> GetByUserIdAsync(Guid userId);
     Task<IEnumerable<UserBranchResponse>> GetByBranchIdAsync(Guid branchId);
@@ -17,4 +18,7 @@ public interface IUserBranchService
     Task<string> DeleteAsync(Guid id);
     Task<IEnumerable<UserBranchLookupResponse>> GetRowsForLookupAsync(Guid storeId);
     Task<UserBranchResponse> GetByHashedIdAsync(string hashedId);
+    Task<int> CreateBulkAsync(IEnumerable<UserBranchRequest> requests);
+    Task<int> DeleteBulkAsync(List<Guid> ids);
+    Task<int> ChangePrimaryBranchAsync(ChangePrimaryBranchRequest req);
 }

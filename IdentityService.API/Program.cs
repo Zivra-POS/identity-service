@@ -9,6 +9,8 @@ using IdentityService.Infrastructure.Services.Message;
 using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.OpenApi.Models;
+using ZivraFramework.Core.API.Filters;
+using ZivraFramework.Core.API.Middleware;
 using ZivraFramework.Core.Extentions;
 using ZivraFramework.Core.Interceptors;
 using ZivraFramework.Core.Interfaces;
@@ -18,64 +20,89 @@ using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+// ----------------------------------------------------------------------
+// CONTROLLERS (single definition only)
+// ----------------------------------------------------------------------
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ResultWrapperFilter>();
+    })
+    .AddJsonOptions(opt =>
+    {
+        // Enum as string
+        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 
-//builder.WebHost.ConfigureKestrel(options =>
-// {
-   // options.ListenAnyIP(7001, o => o.Protocols = HttpProtocols.Http2);
-    //options.ListenAnyIP(5001, o => o.Protocols = HttpProtocols.Http1);
-//});
+        // Prevent EF circular references
+        opt.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 
+// ----------------------------------------------------------------------
+// Kestrel Ports
+// ----------------------------------------------------------------------
+builder.WebHost.ConfigureKestrel(options =>
+{
+    // REST API
+    options.ListenAnyIP(5248, o => o.Protocols = HttpProtocols.Http1);
+
+    // gRPC
+    options.ListenAnyIP(7001, o => o.Protocols = HttpProtocols.Http2);
+});
+
+// ----------------------------------------------------------------------
+// CORS
+// ----------------------------------------------------------------------
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins(
-                "http://localhost:3000"
-            )
+            .WithOrigins("http://localhost:3000")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
     });
 });
 
-builder.Services.AddControllers()
-    .AddJsonOptions(o =>
-    {
-        o.JsonSerializerOptions.Converters.Remove(
-            o.JsonSerializerOptions.Converters
-                .FirstOrDefault(c => c is JsonStringEnumConverter)
-        );
-    });
-
-
-
-// Add gRPC services
+// ----------------------------------------------------------------------
+// gRPC
+// ----------------------------------------------------------------------
 builder.Services.AddGrpc();
 builder.Services.AddGrpcReflection();
 
+// ----------------------------------------------------------------------
+// Core Services
+// ----------------------------------------------------------------------
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddSingleton<BaseEntityInterceptor>();
-
-
-// Add FluentValidation with automatic Result wrapper integration
 builder.Services.AddFluentValidationWithResult();
 
-// Add Global Exception Handler with Result wrapper
-builder.Services.AddGlobalExceptionHandler();
+// Kafka / Events
+builder.Services.AddKafkaProducer(builder.Configuration);
+builder.Services.AddScoped<IUserRegisteredEvent, UserRegisteredEvent>();
+builder.Services.AddScoped<IEmailVerificationEvent, EmailVerificationEvent>();
 
-builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
-builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.None);
+// File Helper
+builder.Services.AddScoped<IFileHelper>(sp =>
+{
+    var env = sp.GetRequiredService<IWebHostEnvironment>();
+    Directory.CreateDirectory(env.WebRootPath);
+    return new FileHelper(env.WebRootPath);
+});
 
+// ----------------------------------------------------------------------
+// Swagger
+// ----------------------------------------------------------------------
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "IdentityService", Version = "v1" });
-    c.AddServer(new OpenApiServer
-    {
-        Url = "http://localhost:5248"
-    });
+
+    // Set default server URL
+    c.AddServer(new OpenApiServer { Url = "http://localhost:5248" });
+
     c.SupportNonNullableReferenceTypes();
+
     c.MapType<IFormFile>(() => new OpenApiSchema
     {
         Type = "string",
@@ -83,50 +110,34 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-
-builder.Services.AddInfrastructure(builder.Configuration);
+// ----------------------------------------------------------------------
+// Logging settings
+// ----------------------------------------------------------------------
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore.Database.Command", LogLevel.None);
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.None);
 
 var loggerOptions = builder.Configuration.GetSection("Logging").Get<LoggerOptions>();
 var envFromConfig = builder.Configuration.GetValue<string>("Environment");
-Logger.Configure(logsDirectory: loggerOptions?.LogsDirectory, environmentGetter: () => envFromConfig);
+Logger.Configure(loggerOptions?.LogsDirectory, () => envFromConfig);
 
-builder.Services.AddJwtAuthentication(builder.Configuration);
-
-// File helper
-builder.Services.AddScoped<IFileHelper>(sp =>
-{
-    var env = sp.GetRequiredService<IWebHostEnvironment>();
-    var webRoot = env.WebRootPath;
-    Directory.CreateDirectory(webRoot);
-    return new FileHelper(webRoot);
-});
-
-// JSON Enum Converter
-builder.Services.AddControllers()
-    .AddJsonOptions(opt =>
-    {
-        opt.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    });
-
-// Kafka
-builder.Services.AddKafkaProducer(builder.Configuration);
-builder.Services.AddScoped<IUserRegisteredEvent, UserRegisteredEvent>();
-builder.Services.AddScoped<IEmailVerificationEvent, EmailVerificationEvent>();
-
-builder.Services.AddScoped<GrpcAuthService>();
-
-Console.WriteLine($"Environment: {builder.Environment.EnvironmentName}");
-Console.WriteLine($"Kafka BootstrapServers: {builder.Configuration["Kafka:BootstrapServers"]}");
-
-
+// ----------------------------------------------------------------------
+// Build app
+// ----------------------------------------------------------------------
 var app = builder.Build();
 
-// Use Global Exception Handler 
-app.UseGlobalExceptionHandler();
+// ----------------------------------------------------------------------
+// GLOBAL EXCEPTION HANDLER (MUST BE FIRST!)
+// ----------------------------------------------------------------------
+app.UseMiddleware<GlobalExceptionHandlerMiddleware>();
 
+// ----------------------------------------------------------------------
+// Swagger
+// ----------------------------------------------------------------------
 app.UseSwagger();
 app.UseSwaggerUI();
 
+// ----------------------------------------------------------------------
+app.UseStaticFiles();
 app.UseCors("AllowFrontend");
 
 app.UseCookiePolicy(new CookiePolicyOptions
@@ -136,31 +147,36 @@ app.UseCookiePolicy(new CookiePolicyOptions
     MinimumSameSitePolicy = SameSiteMode.Lax
 });
 
-
 app.UseRouting();
 app.UseHttpMetrics();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
+// ----------------------------------------------------------------------
+// Endpoints
+// ----------------------------------------------------------------------
 app.MapControllers();
 app.MapMetrics();
-
 app.MapGrpcService<GrpcAuthService>();
-app.MapGrpcReflectionService(); 
-app.MapGet("/", () => "✅ IdentityService is running. gRPC:7001");
+app.MapGrpcReflectionService();
 
+app.MapGet("/", () => "✅ IdentityService is running on 5248 (REST) and 7001 (gRPC)");
+
+// ----------------------------------------------------------------------
+// Seeder
+// ----------------------------------------------------------------------
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await RoleSeeder.SeedAsync(db);
 }
 
+// ----------------------------------------------------------------------
 app.Run();
 
-// Make the Program class accessible for testing
+// Make Program class testable
 namespace IdentityService.API
 {
     public partial class Program { }
 }
-

@@ -66,7 +66,7 @@ public static class TestDataGenerator
             DisplayName = Faker.Name.FirstName(),
             PhoneNumber = Faker.Phone.PhoneNumber(),
             IsActive = true,
-            ProfilImage = CreateTestFormFile("updated-profile.jpg", "image/jpeg"),
+            ProfileImage = CreateTestFormFile("updated-profile.jpg", "image/jpeg"),
             Address = Faker.Address.FullAddress(),
             Province = Faker.Address.State(),
             City = Faker.Address.City(),

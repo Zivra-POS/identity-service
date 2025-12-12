@@ -138,7 +138,8 @@ public class GrpcAuthService : AuthenticationService.AuthenticationServiceBase
             var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
 
             var storeId = principal.FindFirst("store_id")?.Value;
-            var userId = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? string.Empty;
+            var userId = principal?.FindFirstValue(JwtRegisteredClaimNames.Sub)
+                         ?? principal?.FindFirstValue(ClaimTypes.NameIdentifier);
             var username = principal.FindFirst(JwtRegisteredClaimNames.UniqueName)?.Value ?? string.Empty;
             var email = principal.FindFirst(JwtRegisteredClaimNames.Email)?.Value ?? string.Empty;
             var fullName = principal.FindFirst(JwtRegisteredClaimNames.Name)?.Value ?? string.Empty;
@@ -146,7 +147,7 @@ public class GrpcAuthService : AuthenticationService.AuthenticationServiceBase
             var roles = principal.FindAll(ClaimTypes.Role).Select(c => c.Value).ToList();
             
             _ = Guid.TryParse(userId, out var parsedUserId) ? parsedUserId : (Guid?)null;
-            _ = Guid.TryParse(storeId, out var parsedStoreId) ? parsedStoreId : (Guid?)null;
+            var parsedStoreId = Base62Guid.Decode(storeId, "s_");
 
             if (!await _userRepository.IsUserAccessStoreAsync(parsedUserId, parsedStoreId))
             {

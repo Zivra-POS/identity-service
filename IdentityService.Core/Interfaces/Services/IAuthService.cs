@@ -6,6 +6,7 @@ using IdentityService.Shared.DTOs.Response;
 using IdentityService.Shared.DTOs.Response.Auth;
 using System.Threading.Tasks;
 using System;
+using IdentityService.Shared.DTOs.Response.staff;
 using ZivraFramework.Core.Filtering.Entities;
 using ZivraFramework.Core.Models;
 
@@ -26,5 +27,5 @@ public interface IAuthService
     Task<string> SendVerifyEmailAsync(SendVerifyEmailRequest req, bool withTxn = true);
     Task<string> VerifyEmailAsync(string code);
     Task<string> UnlockUserAsync(UnlockUserRequest request);
-    Task<PagedResult<User>> GetStaffByStoreIdAsync(QueryRequest req);
+    Task<PagedResult<StaffResponse>> GetStaffByStoreIdAsync(QueryRequest req, Guid storeId);
 }
